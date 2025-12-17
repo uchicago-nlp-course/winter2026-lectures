@@ -31,6 +31,24 @@ cd winter2025-lectures
 open lecture-01/index.html
 ```
 
+### Running Jupyter Notebooks
+
+Some lectures include interactive Jupyter notebooks for live demos. To run them:
+
+1. Install [uv](https://docs.astral.sh/uv/) (Python package manager):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. Install dependencies and start JupyterLab:
+```bash
+uv sync
+uv run jupyter lab
+```
+
+3. Open the notebook (e.g., `lecture-01/tokenize.ipynb`) in JupyterLab.
+
+4. To view as slides, use the RISE extension (enter slideshow mode from the toolbar).
 
 ## Deploying to GitHub Pages
 
