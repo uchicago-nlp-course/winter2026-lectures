@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 2: Words and Word Representations | CMSC 25700/35100 NLP</title>
+    <meta name="description" content="Words and Word Representations in Natural Language Processing. Topics include tokenization, types/tokens, Zipf's law, morphology, BPE, and word embeddings.">
+    <meta name="author" content="Chenhao Tan">
+    <meta name="keywords" content="NLP, Natural Language Processing, Tokenization, Word Embeddings, BPE, PMI, Cosine Similarity, University of Chicago">
+    <meta property="og:title" content="Lecture 2: Words and Word Representations | CMSC 25700/35100 NLP">
+    <meta property="og:description" content="Words and Word Representations in Natural Language Processing at University of Chicago.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="../assets/css/uchicago-theme.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <section data-markdown>
+                <textarea data-template>
+                    # CMSC 25700/35100:
+                    ## Natural Language Processing
+
+                    ## Lecture 2: Words and Word Representations
+
+                    <p style="text-align: center;">
+                    <strong>Chenhao Tan</strong><br/>
+                    University of Chicago<br/>
+                    @ChenhaoTan, chenhao@uchicago.edu
+                    </p>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/1">Submit
+                    Music Recommendations</a>
+                </textarea>
+            </section>
+
+
+
+            <!-- Tokenization Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Review of Lecture 1
+                        - Word tokenization
+                        - Sentence tokenization
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Counting is the superpower after tokenization.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Zipf's Law
+
+                        Frequency of a word is inversely proportional to its rank in the word frequency list
+
+                        $$\text{word frequency} \propto \frac{1}{\text{rank}}$$
+
+                        - "the" is rank 1, most frequent
+                        - Most words are extremely rare ("long tail")
+
+                        TODO: add plot
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Type/Token Ratio
+
+                        How does the type/token ratio change when adding more data?
+
+                        **More data → lower type/token ratio**
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Which has a higher type/token ratio?
+
+                        Wikipedia (The Free Encyclopedia) vs. Wikipedia (Simple English)
+
+                        English Wikipedia has higher type/token ratio (more diverse vocabulary)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Wikipedia vs. Tweets
+
+                        Tweets have higher type/token ratio at large scale!
+
+                        Why? Creative spellings like:
+                        - really, rly, realy, rlly, reallly, realllly, reallyy...
+                        - (224,571 "really" vs. hundreds of variants)
+                    </textarea>
+                </section>
+
+            </section>
+
+            <!-- Morphology Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Morphology in NLP
+
+                        NLP problems that address morphology:
+                        - **lemmatization**
+                        - **stemming**
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Terminology
+
+                        - **lemma**: canonical/dictionary form of a word
+                            - Words with same lemma have same stem, part of speech, rough semantics
+
+                        - **word form**: full inflected or derived form of a word as it appears in text
+
+                        | word form | lemma |
+                        |-----------|-------|
+                        | run | run |
+                        | ran | run |
+                        | running | run |
+
+                        <p class="citation">Sec. 2.2 (J&M)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lemmatization
+
+                        **lemmatization**: convert wordform to lemma
+
+                        - am, is, are → be
+                        - car, cars, car's, cars' → car
+
+                        Example:
+                        - "the boy's cars are different colors"
+                        - → "the boy car be different color"
+
+                        Mostly about finding the correct dictionary entry, but this may depend on context
+
+                        <p class="citation">Sec. 2.4.4 (J&M)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Stemming
+
+                        **stemming**: reduce words to their stems by removing affixes
+                        - Usually implemented with language-specific, manually-designed rules
+                        - Commonly used in information retrieval
+
+                        Example:
+                        - "Caillou is an average, imaginative four-year-old boy..."
+                        - → "Caillou is an **averag** **imagin** four year old **boi**..."
+
+                        <p class="citation">Sec. 2.4.4 (J&M)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Porter's Algorithm
+
+                        (the most common English stemmer)
+
+                        **Step 1a**
+                        - sses → ss (caresses → caress)
+                        - ies → i (ponies → poni)
+                        - ss → ss (caress → caress)
+                        - s → ø (cats → cat)
+
+                        **Step 1b**
+                        - (\*v\*)ing → ø (walking → walk, sing → sing)
+                        - (\*v\*)ed → ø (plastered → plaster)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Idiosyncrasies of the Porter Stemmer
+
+                        | Words | Stem |
+                        |-------|------|
+                        | sever, severed, severing, several, severe, severely, severity | sever |
+                        | wit, wits, witness, witnesses, witnessing | wit |
+
+                        Problems with conflating unrelated words!
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lemmatization vs. Stemming
+
+                        **Lemmatization**
+                        - Viewed as an NLP task
+                        - Solved with dictionary look-up, possibly with machine learning
+
+                        **Stemming**
+                        - Uses manually-defined rules
+                        - Simple and fast, but limited due to reliance on rules
+                        - May conflate words erroneously
+
+                        Both may remove information. To mitigate, combine lemma/stem form with original form, use both!
+                    </textarea>
+                </section>
+            </section>
+
+
+
+            <!-- Word Embeddings Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## How do we represent words computationally?
+
+                        荃者所以在鱼，得鱼而忘荃 Nets are for fish;
+                        Once you get the fish, you can forget the net.
+
+                        言者所以在意，得意而忘言 Words are for meaning;
+                        Once you get the meaning, you can forget the words.
+
+                        <p style="font-size: 0.6em;">庄子 (Zhuangzi), Chapter 26</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Word Representations
+
+                        Simple approach: assign each word an ID
+                        - cat → 17
+                        - chef → 91
+                        - chicken → 253
+                        - ...
+
+                        Better approach: **embeddings** (vectors of real numbers)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Motivation for Word Embeddings
+
+                        **Variability**: multiple forms, similar meaning
+
+                        really, reallly, realllly → should have similar vectors!
+
+                        Embeddings can capture this similarity.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## How should we embed words?
+
+                        **Distributional hypothesis**: words that appear in similar contexts have similar meanings
+
+                        > "You shall know a word by the company it keeps."
+                        > Firth (1957)
+
+                        <p class="citation">Joos (1950); Harris (1954); Firth (1957); Ch. 6 (J&M)</p>
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Co-occurrence Counts Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Co-occurrence Counts
+
+                        Build a matrix:
+                        - Rows: context words (the, cat, chicken, city, cook, ...)
+                        - Columns: words we're computing vectors for
+
+                        Each cell: count of how often words appear together within a window
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Window Size
+
+                        "..., the club may also employ a **chef** to prepare and cook food items."
+
+                        - Window size w=1: count immediate neighbors
+                        - Window size w=4: count words within 4 positions
+
+                        Larger windows capture more topical similarity; smaller windows capture more syntactic similarity.
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Similarity Measures Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Computing Similarity
+
+                        Once we have word vectors, we can compute similarities!
+
+                        **Dot product** (inner product):
+
+                        $$\mathbf{u} \cdot \mathbf{v} = \mathbf{u}^\top \mathbf{v} = \sum_i u_i v_i$$
+
+                        Dot product is large when vectors have large values in the same dimensions.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Problem with Dot Product
+
+                        Dot product doesn't control for vector length!
+
+                        **Vector length**: $\|\mathbf{u}\| = \sqrt{\sum_i u_i^2}$
+
+                        **Cosine similarity**:
+
+                        $$\frac{\mathbf{u}^\top \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}$$
+
+                        This is the cosine of the angle between the two vectors!
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Nearest Neighbors with Cosine Similarity
+
+                        | cat | chef | chicken | civic | cooked | council |
+                        |-----|------|---------|-------|--------|---------|
+                        | chef | civic | cooked | council | chef | civic |
+                        | cooked | cooked | chef | chef | civic | chef |
+                        | civic | council | civic | cooked | council | cooked |
+
+                        Much better than raw dot product!
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Improving Counts Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Improving Counts
+
+                        - Counts of common words ("the") are very large, but not very useful
+                        - Many ways proposed for improving raw counts:
+                            - **tf-idf** ("term frequency-inverse document frequency")
+                            - **PMI** (pointwise mutual information; we will skip this in lecture)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## tf-idf
+
+                        - **tf** is just the count of the two words
+                        - **idf** is computed for the context word
+                            - document frequency = number of documents in which a word appears
+                            - inverse of document frequency will be small for common words
+                        - Vector entry is then the product of tf and idf
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- SVD Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## From Sparse to Dense Vectors
+
+                        Co-occurrence matrices are:
+                        - **Sparse**: most entries are zero
+                        - **High-dimensional**: vocabulary size can be 50K+ dimensions
+
+                        Can we get **dense, low-dimensional** representations?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Singular Value Decomposition (SVD)
+
+                        Factor a matrix $\mathbf{M}$ into three matrices:
+
+                        $$\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^\top$$
+
+                        - $\mathbf{M}$: original matrix (words $\times$ contexts)
+                        - $\mathbf{U}$: left singular vectors (words $\times$ k)
+                        - $\mathbf{\Sigma}$: diagonal matrix of singular values (k $\times$ k)
+                        - $\mathbf{V}^\top$: right singular vectors (k $\times$ contexts)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Truncated SVD
+
+                        Keep only the top $k$ singular values:
+
+                        $$\mathbf{M} \approx \mathbf{U}_k \mathbf{\Sigma}_k \mathbf{V}_k^\top$$
+
+                        - Reduces dimensionality from |V| to k (typically 100-300)
+                        - Best rank-k approximation (minimizes reconstruction error)
+                        - Word vectors: rows of $\mathbf{U}_k$ (or $\mathbf{U}_k \mathbf{\Sigma}_k$)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Latent Semantic Analysis (LSA)
+
+                        Apply SVD to document-term matrix:
+                        - Rows: documents
+                        - Columns: words
+                        - Entries: tf-idf weights
+
+                        Benefits:
+                        - Handles synonymy: similar words map to similar vectors
+                        - Handles polysemy (to some extent): averages over meanings
+                        - Reduces noise from sparse counts
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why Does SVD Help?
+
+                        - Captures latent semantic structure
+                        - Words that never co-occur directly can still have similar vectors
+                            - "car" and "automobile" may appear in similar documents
+                        - Smooths over sparsity in the original counts
+                        - Provides continuous representations
+                    </textarea>
+                </section>
+
+
+            </section>
+
+            <!-- Word2Vec Section -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Word2Vec
+
+                        Learn word vectors by predicting context words!
+
+                        (Mikolov et al., 2013)
+
+                        Key insight: Instead of counting co-occurrences, **predict** them
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Word2Vec: Main Idea
+
+                        For each position $t$ in a corpus with center word $c$:
+                        - Predict context words within a window
+
+                        **Objective**: Maximize probability of context words given center word
+
+                        $$L(\theta) = \prod_{t=1}^{T} \prod_{-m \leq j \leq m, j \neq 0} P(w_{t+j} | w_t; \theta)$$
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Two Variants
+
+                        **Skip-gram**: Predict context words from center word
+                        - Input: center word
+                        - Output: context words
+
+                        **CBOW (Continuous Bag of Words)**: Predict center from context
+                        - Input: context words
+                        - Output: center word
+
+                        Skip-gram works better for infrequent words
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Skip-gram: How to Compute P(context|center)?
+
+                        Use two vectors per word $w$:
+                        - $v_w$: vector when $w$ is center word
+                        - $u_w$: vector when $w$ is context word
+
+                        $$P(o|c) = \frac{\exp(u_o^\top v_c)}{\sum_{w \in V} \exp(u_w^\top v_c)}$$
+
+                        This is a **softmax** over the vocabulary!
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Problem with Softmax
+
+                        $$P(o|c) = \frac{\exp(u_o^\top v_c)}{\sum_{w \in V} \exp(u_w^\top v_c)}$$
+
+                        Denominator sums over **entire vocabulary**!
+                        - Vocabulary size |V| can be 100K+ words
+                        - Too expensive to compute for every training step
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Negative Sampling
+
+                        Instead of normalizing over all words, sample **negative examples**
+
+                        New objective: distinguish real context words from random words
+
+                        $$J(\theta) = \log \sigma(u_o^\top v_c) + \sum_{k=1}^{K} \mathbb{E}_{w_k \sim P_n(w)} [\log \sigma(-u_{w_k}^\top v_c)]$$
+
+                        - $\sigma(x) = \frac{1}{1+e^{-x}}$ (sigmoid function)
+                        - Sample K negative words (typically K = 5-20)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Training with SGD
+
+                        **Stochastic Gradient Descent**:
+                        1. Sample a center word and context window
+                        2. Compute gradients of objective
+                        3. Update word vectors: $\theta \leftarrow \theta - \alpha \nabla_\theta J$
+
+                        After training:
+                        - Can use $v_w$ vectors
+                        - Or average $\frac{v_w + u_w}{2}$
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Word Analogies
+
+                        Word vectors capture semantic relationships!
+
+                        **man : woman :: king : ?**
+
+                        $$v_{king} - v_{man} + v_{woman} \approx v_{queen}$$
+
+                        Find word whose vector is closest to $v_{king} - v_{man} + v_{woman}$
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Types of Analogies
+
+                        | Relationship | Example |
+                        |--------------|---------|
+                        | Gender | king:queen :: man:woman |
+                        | Verb tense | walking:walked :: swimming:swam |
+                        | Country-capital | France:Paris :: Italy:Rome |
+                        | Comparative | big:bigger :: slow:slower |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Count vs. Prediction Methods
+
+                        **Count-based** (LSA, HAL):
+                        - Build co-occurrence matrix, apply SVD
+                        - Fast to train
+                        - Primarily captures similarity
+
+                        **Prediction-based** (Word2Vec, GloVe):
+                        - Train neural network to predict words
+                        - Scales well with large corpora
+                        - Captures complex patterns (analogies)
+
+                        GloVe: combines both approaches!
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Evaluating Word Vectors
+
+                        **Intrinsic evaluation**:
+                        - Word analogy task
+                        - Word similarity correlation (WordSim-353, SimLex-999)
+                        - Fast, but may not reflect downstream performance
+
+                        **Extrinsic evaluation**:
+                        - Use vectors in real NLP task (NER, sentiment, etc.)
+                        - Slower, but measures actual usefulness
+                    </textarea>
+                </section>
+
+
+            </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Summary
+
+                        - **Distributional hypothesis**: similar contexts = similar meanings
+                        - **Co-occurrence matrices**: count-based representations
+                        - **SVD/LSA**: dimensionality reduction for dense vectors
+                        - **Word2Vec**: predict context words, learn vectors via SGD
+                        - SVD and Word2Vec are actually closely related!
+                        <p class="citation"><a href="https://papers.nips.cc/paper_files/paper/2014/hash/b78666971ceae55a8e87efb7cbfd9ad4-Abstract.html">Levy & Goldberg (2014)</a></p>
+                    </textarea>
+                </section>
+            
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Word Meaning is not Stable
+
+                        Problem: Words have multiple meanings!
+
+                        - "bank" (financial) vs "bank" (river)
+                        - "cell" (biology) vs "cell" (phone)
+                        - "this is sick" (ill) vs "this is sick" (cool)
+
+                        Standard word vectors: one vector per word type
+                        - Averages over all senses
+
+                        Solutions: contextualized embeddings (later!)
+                    </textarea>
+                </section>
+
+            <section data-markdown>
+                <textarea data-template>
+                    # Questions?
+                </textarea>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/math/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            width: 1280,
+            height: 720,
+            margin: 0.04,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealMath.KaTeX ]
+        });
+    </script>
+</body>
+</html>

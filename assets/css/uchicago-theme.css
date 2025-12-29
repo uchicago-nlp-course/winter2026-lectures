@@ -198,6 +198,12 @@
     color: #D6D6CE;
 }
 
+.reveal .citation {
+    font-size: 0.6em;
+    color: #767676;
+    font-style: italic;
+}
+
 /*********************************************
  * SLIDE BACKGROUNDS
  *********************************************/
