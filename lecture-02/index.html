@@ -74,7 +74,7 @@
 
                         How does the type/token ratio change when adding more data?
 
-                        **More data → lower type/token ratio**
+                        **More data → lower type/token ratio** <!-- .element: class="fragment" -->
                     </textarea>
                 </section>
 
@@ -82,21 +82,21 @@
                     <textarea data-template>
                         ## Which has a higher type/token ratio?
 
-                        Wikipedia (The Free Encyclopedia) vs. Wikipedia (Simple English)
+                        Wikipedia (The Free Encyclopedia) vs. Wikipedia (Simple English) 
 
-                        English Wikipedia has higher type/token ratio (more diverse vocabulary)
+                        English Wikipedia has higher type/token ratio (more diverse vocabulary) <!-- .element: class="fragment" -->
                     </textarea>
                 </section>
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## Wikipedia vs. Tweets
+                        ## Wikipedia vs. Tweets 
 
-                        Tweets have higher type/token ratio at large scale!
+                        Tweets have higher type/token ratio at large scale <!-- .element: class="fragment" data-fragment-index="1" -->
 
-                        Why? Creative spellings like:
-                        - really, rly, realy, rlly, reallly, realllly, reallyy...
-                        - (224,571 "really" vs. hundreds of variants)
+                        Why? Creative spellings like: <!-- .element: class="fragment" data-fragment-index="2" -->
+                        - really, rly, realy, rlly, reallly, realllly, reallyy... <!-- .element: class="fragment" data-fragment-index="2" -->
+                        - (224,571 "really" vs. hundreds of variants) <!-- .element: class="fragment" data-fragment-index="2" -->
                     </textarea>
                 </section>
 
@@ -107,6 +107,8 @@
                 <section data-markdown>
                     <textarea data-template>
                         ## Morphology in NLP
+
+                        Morphology is the study of word structure and formation (stems, roots, prefixes, suffixes)
 
                         NLP problems that address morphology:
                         - **lemmatization**
@@ -129,7 +131,6 @@
                         | ran | run |
                         | running | run |
 
-                        <p class="citation">Sec. 2.2 (J&M)</p>
                     </textarea>
                 </section>
 
@@ -148,7 +149,7 @@
 
                         Mostly about finding the correct dictionary entry, but this may depend on context
 
-                        <p class="citation">Sec. 2.4.4 (J&M)</p>
+                        
                     </textarea>
                 </section>
 
@@ -164,7 +165,7 @@
                         - "Caillou is an average, imaginative four-year-old boy..."
                         - → "Caillou is an **averag** **imagin** four year old **boi**..."
 
-                        <p class="citation">Sec. 2.4.4 (J&M)</p>
+                        
                     </textarea>
                 </section>
 
@@ -183,6 +184,10 @@
                         **Step 1b**
                         - (\*v\*)ing → ø (walking → walk, sing → sing)
                         - (\*v\*)ed → ø (plastered → plaster)
+
+                        This is a simplified first step, see <a
+                        href="https://vijinimallawaarachchi.com/2017/05/09/porter-stemming-algorithm/
+                        ">this page</a> for full details.
                     </textarea>
                 </section>
 
@@ -212,7 +217,22 @@
                         - Simple and fast, but limited due to reliance on rules
                         - May conflate words erroneously
 
-                        Both may remove information. To mitigate, combine lemma/stem form with original form, use both!
+                        Both may remove information. To mitigate, combine lemma/stem form with
+                        original form, use both!
+                        
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Summary
+
+                        Similar to tokenization, morphology is a human concept. 
+                        - Academic definitions may differ from practical use.
+                        - Human-designed algorithms may not align with linguistic intuitions.
+                        - Machines may learn different patterns with sufficient data.
+
+                        Understanding this difference is important for approaching current LLMs!
                     </textarea>
                 </section>
             </section>
@@ -231,7 +251,17 @@
                         言者所以在意，得意而忘言 Words are for meaning;
                         Once you get the meaning, you can forget the words.
 
-                        <p style="font-size: 0.6em;">庄子 (Zhuangzi), Chapter 26</p>
+                        <p class="citation">庄子 (Zhuangzi), Chapter 5</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Canonical Example: king - man + woman = queen
+
+                        <img src="king-queen.webp" style="max-width: 80%; display: block; margin: 0 auto;">
+
+                        <p class="citation">[photo credit: Jaron Collis on Quora]</p>
                     </textarea>
                 </section>
 
@@ -240,12 +270,13 @@
                         ## Word Representations
 
                         Simple approach: assign each word an ID
-                        - cat → 17
-                        - chef → 91
-                        - chicken → 253
+                        - king → 17
+                        - queen → 91
+                        - man → 253
                         - ...
 
                         Better approach: **embeddings** (vectors of real numbers)
+
                     </textarea>
                 </section>
 
@@ -270,7 +301,6 @@
                         > "You shall know a word by the company it keeps."
                         > Firth (1957)
 
-                        <p class="citation">Joos (1950); Harris (1954); Firth (1957); Ch. 6 (J&M)</p>
                     </textarea>
                 </section>
             </section>
@@ -282,7 +312,7 @@
                         ## Co-occurrence Counts
 
                         Build a matrix:
-                        - Rows: context words (the, cat, chicken, city, cook, ...)
+                        - Rows: context words (the, king, queen, man, woman, ...)
                         - Columns: words we're computing vectors for
 
                         Each cell: count of how often words appear together within a window
@@ -293,7 +323,8 @@
                     <textarea data-template>
                         ## Window Size
 
-                        "..., the club may also employ a **chef** to prepare and cook food items."
+                        "... years later , turing received a posthumous royal pardon from **queen**
+                        elizabeth ii . today , the “ turing law ..."
 
                         - Window size w=1: count immediate neighbors
                         - Window size w=4: count words within 4 positions
@@ -321,6 +352,20 @@
 
                 <section data-markdown>
                     <textarea data-template>
+                        ## Nearest Neighbors with Dot Product
+
+                        | king | queen | man | woman |
+                        |------|-------|-----|-------|
+                        | the | the | , | of |
+                        | of | , | the | , |
+                        | , | of | of | . |
+
+                        Top neighbors are just the most frequent words!
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
                         ## Problem with Dot Product
 
                         Dot product doesn't control for vector length!
@@ -339,13 +384,13 @@
                     <textarea data-template>
                         ## Nearest Neighbors with Cosine Similarity
 
-                        | cat | chef | chicken | civic | cooked | council |
-                        |-----|------|---------|-------|--------|---------|
-                        | chef | civic | cooked | council | chef | civic |
-                        | cooked | cooked | chef | chef | civic | chef |
-                        | civic | council | civic | cooked | council | cooked |
+                        | king | queen | man | woman |
+                        |------|-------|-----|-------|
+                        | governor | king | woman | man |
+                        | queen | lord | girl | person |
+                        | ruler | chief | student | girl |
 
-                        Much better than raw dot product!
+                        Much better than dot product!
                     </textarea>
                 </section>
             </section>
@@ -428,10 +473,6 @@
                         - Columns: words
                         - Entries: tf-idf weights
 
-                        Benefits:
-                        - Handles synonymy: similar words map to similar vectors
-                        - Handles polysemy (to some extent): averages over meanings
-                        - Reduces noise from sparse counts
                     </textarea>
                 </section>
 
@@ -440,8 +481,6 @@
                         ## Why Does SVD Help?
 
                         - Captures latent semantic structure
-                        - Words that never co-occur directly can still have similar vectors
-                            - "car" and "automobile" may appear in similar documents
                         - Smooths over sparsity in the original counts
                         - Provides continuous representations
                     </textarea>
@@ -456,11 +495,11 @@
                     <textarea data-template>
                         ## Word2Vec
 
-                        Learn word vectors by predicting context words!
+                        <img src="word2vec.png" style="max-width: 60%; display: block; margin: 0 auto;">
 
-                        (Mikolov et al., 2013)
-
-                        Key insight: Instead of counting co-occurrences, **predict** them
+                        `The main goal of this paper is to introduce techniques that can be used
+                        for learning high-quality word vectors from **huge** data sets with billions of
+                        words, and with millions of words in the vocabulary.`
                     </textarea>
                 </section>
 
@@ -468,31 +507,30 @@
                     <textarea data-template>
                         ## Word2Vec: Main Idea
 
-                        For each position $t$ in a corpus with center word $c$:
-                        - Predict context words within a window
+                        Key insight: Instead of counting co-occurrences, **predict** them
 
-                        **Objective**: Maximize probability of context words given center word
+                        Predict context words within a window using a center word
 
-                        $$L(\theta) = \prod_{t=1}^{T} \prod_{-m \leq j \leq m, j \neq 0} P(w_{t+j} | w_t; \theta)$$
+                        <img src="skip_gram.png" style="max-width: 60%; display: block; margin: 0 auto;">
                     </textarea>
                 </section>
+
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## Two Variants
+                        ## Word2Vec: Training Procedure
 
-                        **Skip-gram**: Predict context words from center word
-                        - Input: center word
-                        - Output: context words
+                        - Start with a large corpus of text
+                        - Go through each position $t$ in the text
+                        - Predict context words using center word vectors
+                            - Compute $P(o|c)$ using similarity of word vectors
+                        - Adjust vectors via SGD to minimize the following objective function
 
-                        **CBOW (Continuous Bag of Words)**: Predict center from context
-                        - Input: context words
-                        - Output: center word
-
-                        Skip-gram works better for infrequent words
+                        $$J(\theta) = -\frac{1}{T} \log L(\theta) = -\frac{1}{T} \sum{t=1}^{T} \sum_{-m \leq j \leq m, j \neq 0} P(w_{t+j} | w_t; \theta)$$
                     </textarea>
                 </section>
 
+                
                 <section data-markdown>
                     <textarea data-template>
                         ## Skip-gram: How to Compute P(context|center)?
@@ -523,11 +561,12 @@
                     <textarea data-template>
                         ## Negative Sampling
 
-                        Instead of normalizing over all words, sample **negative examples**
+                        Instead of normalizing over all words, sample **negative examples** and
+                        reformulate the problem as binary classification.
 
                         New objective: distinguish real context words from random words
 
-                        $$J(\theta) = \log \sigma(u_o^\top v_c) + \sum_{k=1}^{K} \mathbb{E}_{w_k \sim P_n(w)} [\log \sigma(-u_{w_k}^\top v_c)]$$
+                        $$\log P(o|c) = \log \sigma(u_o^\top v_c) + \sum_{k \in K} \log \sigma(-u_{w_k}^\top v_c)$$
 
                         - $\sigma(x) = \frac{1}{1+e^{-x}}$ (sigmoid function)
                         - Sample K negative words (typically K = 5-20)
@@ -546,6 +585,42 @@
                         After training:
                         - Can use $v_w$ vectors
                         - Or average $\frac{v_w + u_w}{2}$
+                    </textarea>
+                </section>
+
+                <section>
+                    <h2>Two Variants</h2>
+                    <div style="display: flex; align-items: center;">
+                        <div style="flex: 1; text-align: left;">
+                            <p><strong>Skip-gram</strong>: Predict context words from center word</p>
+                            <ul>
+                                <li>Input: center word</li>
+                                <li>Output: context words</li>
+                            </ul>
+                            <p><strong>CBOW (Continuous Bag of Words)</strong>: Predict center from context</p>
+                            <ul>
+                                <li>Input: context words</li>
+                                <li>Output: center word</li>
+                            </ul>
+                        </div>
+                        <div style="flex: 1;">
+                            <img src="cbow_skip_gram.png" style="max-width: 100%;">
+                        </div>
+                    </div>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Evaluating Word Vectors
+
+                        **Intrinsic evaluation**:
+                        - Word analogy task
+                        - Word similarity correlation
+                        - Fast, but may not reflect downstream performance
+
+                        **Extrinsic evaluation**:
+                        - Use vectors in real NLP task (sentiment classification, information extraction, etc.)
+                        - Slower, but measures actual usefulness
                     </textarea>
                 </section>
 
@@ -578,40 +653,25 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## Count vs. Prediction Methods
-
-                        **Count-based** (LSA, HAL):
-                        - Build co-occurrence matrix, apply SVD
-                        - Fast to train
-                        - Primarily captures similarity
-
-                        **Prediction-based** (Word2Vec, GloVe):
-                        - Train neural network to predict words
-                        - Scales well with large corpora
-                        - Captures complex patterns (analogies)
-
-                        GloVe: combines both approaches!
+                        ## A Small Replication on Analogy Task
+                        <img src="analogy_eval.png" style="max-width: 100%;">
+                        
+                        See the notebook/html in the lecture folder for details!
                     </textarea>
                 </section>
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## Evaluating Word Vectors
-
-                        **Intrinsic evaluation**:
-                        - Word analogy task
-                        - Word similarity correlation (WordSim-353, SimLex-999)
-                        - Fast, but may not reflect downstream performance
-
-                        **Extrinsic evaluation**:
-                        - Use vectors in real NLP task (NER, sentiment, etc.)
-                        - Slower, but measures actual usefulness
+                        ## Scaling law for word embeddings
+                        <img src="scaling_law.png" style="max-width: 100%;">
+                        
                     </textarea>
                 </section>
 
-
             </section>
-
+            
+            <!-- Conclusion Section -->
+            <section>
                 <section data-markdown>
                     <textarea data-template>
                         ## Summary
@@ -642,12 +702,12 @@
                     </textarea>
                 </section>
 
-            <section data-markdown>
-                <textarea data-template>
-                    # Questions?
-                </textarea>
+                <section data-markdown>
+                    <textarea data-template>
+                        # Questions?
+                    </textarea>
+                </section>
             </section>
-
         </div>
     </div>
 
