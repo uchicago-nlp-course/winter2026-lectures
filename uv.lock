@@ -882,6 +882,15 @@ wheels = [
 ]
 
 [[package]]
+name = "graphviz"
+version = "0.21"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/b3/3ac91e9be6b761a4b30d66ff165e54439dcd48b83f4e20d644867215f6ca/graphviz-0.21.tar.gz", hash = "sha256:20743e7183be82aaaa8ad6c93f8893c923bd6658a04c32ee115edb3c8a835f78", size = 200434, upload-time = "2025-06-15T09:35:05.824Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/91/4c/e0ce1ef95d4000ebc1c11801f9b944fa5910ecc15b5e351865763d8657f8/graphviz-0.21-py3-none-any.whl", hash = "sha256:54f33de9f4f911d7e84e4191749cac8cc5653f815b06738c54db9a15ab8b1e42", size = 47300, upload-time = "2025-06-15T09:35:04.433Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3474,6 +3483,31 @@ wheels = [
 ]
 
 [[package]]
+name = "torchview"
+version = "0.2.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "graphviz" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/45/f76ac5a2a49f3a5831ddde2e7e6b58fe423b434075e812559976a2122560/torchview-0.2.7.tar.gz", hash = "sha256:c5898fd03d256333c9827000c1f83e1052fbcfc1066032d86b30d429dd942f7c", size = 25697, upload-time = "2025-04-22T20:47:27.49Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/66/b87d835f664f0f99a0bf1e2e294c45d286545fed35b96f2c99e700915dd9/torchview-0.2.7-py3-none-any.whl", hash = "sha256:c7f3a9d16138c20b606900ecbf46d01489f2b8c77ed97e71293883bc606c2be0", size = 26103, upload-time = "2025-04-22T20:47:26.12Z" },
+]
+
+[[package]]
+name = "torchviz"
+version = "0.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "graphviz" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/80/a84e0e8877630262c3f4c8d2e7fd0647c6751afeca301cfc04a1b65ac820/torchviz-0.0.3.tar.gz", hash = "sha256:2e95f2fea7a31ec9549f2d6bbf446d75aeb6a9880fcf13e7dd843fdcdb4a3725", size = 5705, upload-time = "2024-12-02T02:46:54.671Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/06/bea648249802b65282414caf5e7bc94fcb6e5a3e311b537845417d19edb9/torchviz-0.0.3-py3-none-any.whl", hash = "sha256:5eab98d17cbe8a54727cfa6a527681cff613430fff8fc68f52302ca5fa26cdf1", size = 5708, upload-time = "2024-12-02T02:46:52.838Z" },
+]
+
+[[package]]
 name = "tornado"
 version = "6.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3691,6 +3725,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "datasets" },
     { name = "gensim" },
+    { name = "graphviz" },
     { name = "jupyter" },
     { name = "jupyterlab" },
     { name = "jupyterlab-rise" },
@@ -3704,6 +3739,8 @@ dependencies = [
     { name = "spacy" },
     { name = "tiktoken" },
     { name = "torch" },
+    { name = "torchview" },
+    { name = "torchviz" },
     { name = "transformers" },
 ]
 
@@ -3711,6 +3748,7 @@ dependencies = [
 requires-dist = [
     { name = "datasets", specifier = ">=4.4.2" },
     { name = "gensim", specifier = ">=4.4.0" },
+    { name = "graphviz", specifier = ">=0.20.0" },
     { name = "jupyter", specifier = ">=1.0.0" },
     { name = "jupyterlab", specifier = ">=4.0.0" },
     { name = "jupyterlab-rise", specifier = ">=0.42.0" },
@@ -3724,6 +3762,8 @@ requires-dist = [
     { name = "spacy", specifier = ">=3.7.0" },
     { name = "tiktoken", specifier = ">=0.5.0" },
     { name = "torch", specifier = ">=2.9.1" },
+    { name = "torchview", specifier = ">=0.2.0" },
+    { name = "torchviz", specifier = ">=0.0.2" },
     { name = "transformers", specifier = ">=4.57.5" },
 ]
 

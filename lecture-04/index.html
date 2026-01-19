@@ -47,6 +47,7 @@
                     * A1 clarification
                     * <a href="https://forms.gle/1z2K5qDNknvc5ujEA">Pre-course survey</a>
                     * <a href="https://forms.gle/UBSKxrGiWsVK91Cf7">Two-week survey</a>
+                    * Projects
 
                 </textarea>
             </section>
@@ -619,10 +620,8 @@
                     <textarea data-template>
                         ## Advantages of RNNs
 
-                        - Can process any length input
-                        - Model size doesn't increase for longer input
-                        - Computation at step $t$ can use information from many steps back
-                        - Weights are shared across timesteps (symmetry in processing)
+                        - Computation at step $t$ can use information from many steps back (can process any length input)
+                        - Weights are shared across timesteps (Model size doesn't increase for longer input)
                     </textarea>
                 </section>
 
@@ -663,7 +662,7 @@
 
                         Standard metric: **Perplexity**
 
-                        $$\text{Perplexity} = \prod_{t=1}^{T} \left( \frac{1}{P(x^{(t)} | x^{(t-1)}, \ldots, x^{(1)})} \right)^{1/T}$$
+                        $$\text{Perplexity} = \exp\left( -\frac{1}{T} \sum_{t=1}^{T} \log P(x^{(t)} | x^{(t-1)}, \ldots, x^{(1)}) \right)$$
 
                         Equivalent to the exponential of the cross-entropy loss
                     </textarea>
@@ -687,19 +686,22 @@
                     </textarea>
                 </section>
 
+                
                 <section data-markdown>
                     <textarea data-template>
                         ## Bits per Character (BPC)
 
                         **Alternative metric**: Measure perplexity in **bits per character**
 
-                        $$\text{BPC} = \log_2(\text{Perplexity}) = -\frac{1}{N} \sum_{i=1}^{N} \log_2 P(x_i | x_{<i})$$
+                        $$\text{BPC} = -\frac{1}{C} \sum_{i=1}^{T} \log_2 P(x_i | x_{<i})$$
+
+                        where $T$ = number of tokens, $C$ = number of characters
 
                         **Interpretation**: How many bits needed to encode each character
 
                         **Why it's useful**:
                         - Information-theoretic interpretation (compression)
-                        - Comparable across different vocabulary sizes
+                        - Comparable across different tokenizers
                         
                     </textarea>
                 </section>
