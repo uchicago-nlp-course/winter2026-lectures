@@ -7,7 +7,7 @@
     <meta name="description" content="Language Modeling in Natural Language Processing. Topics include n-gram language models, neural language models, and fixed-window models.">
     <meta name="author" content="Chenhao Tan">
     <meta name="keywords" content="NLP, Natural Language Processing, Language Modeling, N-gram, Neural Networks, University of Chicago">
-    <meta property="og:title" content="Lecture 5: Language Modeling | CMSC 25700/35100 NLP">
+    <meta property="og:title" content="Lecture 4: Language Modeling | CMSC 25700/35100 NLP">
     <meta property="og:description" content="Language Modeling in Natural Language Processing at University of Chicago.">
     <meta property="og:type" content="website">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
@@ -450,7 +450,7 @@
                         1. **Input**: Words as one-hot vectors $x^{(1)}, x^{(2)}, x^{(3)}, x^{(4)}$
                         2. **Embedding layer**: $e = [e^{(1)}; e^{(2)}; e^{(3)}; e^{(4)}]$ (concatenated)
                         3. **Hidden layer**: $h = f(We + b_1)$
-                        4. **Output**: $\hat{y} = \text{softmax}(Uh + b_2) \in \mathbb{R}^{|V|}$
+                        4. **Output**: $\hat{y} = \text{softmax}(W_o h + b_2) \in \mathbb{R}^{|V|}$
 
                         <p class="citation"><a href="https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf">A Neural Probabilistic Language Model</a> (Bengio et al., 2003)</p>
                     </textarea>
@@ -487,7 +487,7 @@
                         **Parameters as function of window size $n$**:
                         - Embedding $E$: $|V| \times d = 1M$ (independent of $n$)
                         - Hidden $W$: $(n \cdot d) \times h = n \times 20K$ (**grows with $n$**)
-                        - Output $U$: $h \times |V| = 2M$ (independent of $n$)
+                        - Output $W_o$: $h \times |V| = 2M$ (independent of $n$)
                         </textarea>
                 </section>
                 
@@ -578,15 +578,15 @@
                         ## RNN Equations
 
                         **Hidden state update**:
-                        $h^{(t)} = \sigma(W_h h^{(t-1)} + W_e e^{(t)} + b_1)$
+                        $h^{(t)} = g(W_h h^{(t-1)} + W_e e^{(t)} + b_1)$
 
                         **Output prediction**:
-                        $\hat{y}^{(t)} = \text{softmax}(U h^{(t)} + b_2)$
+                        $\hat{y}^{(t)} = \text{softmax}(W_o h^{(t)} + b_2)$
 
                         Where:
                         - $e^{(t)}$ is the word embedding for input $x^{(t)}$
-                        - $W_h, W_e, U$ are weight matrices (shared across all timesteps)
-                        - $\sigma$ is a non-linear activation (e.g., tanh)
+                        - $W_h, W_e, W_o$ are weight matrices (shared across all timesteps)
+                        - $g$ is a non-linear activation (e.g., tanh)
                     </textarea>
                 </section>
 
@@ -596,7 +596,7 @@
 
                         <img src="images/rnn_figure.png" alt="RNN Language Model" style="max-height: 400px;">
 
-                        Same weights $(W_h, W_e, U)$ used at every timestep
+                        Same weights $(W_h, W_e, W_o)$ used at every timestep
                     </textarea>
                 </section>
 
@@ -610,7 +610,7 @@
                         - Embedding $E$: $|V| \times d = 1M$
                         - $W_e$ (input): $d \times h = 20K$
                         - $W_h$ (recurrent): $h \times h = 40K$
-                        - $U$ (output): $h \times |V| = 2M$
+                        - $W_o$ (output): $h \times |V| = 2M$
 
                         Total: 3.06M parameters for ANY sequence length!
                     </textarea>
@@ -727,6 +727,52 @@
                 <section data-markdown>
                     <textarea data-template>
                         # Questions?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $x^{(t)}$ | Word at position $t$ in sequence |
+                        | $T$ | Sequence length |
+                        | $V$ | Vocabulary |
+                        | $\|V\|$ | Vocabulary size |
+                        | $n$ | N-gram order (context size + 1) |
+                        | $P(x^{(t+1)} \| x^{(t)}, \ldots)$ | Next word probability |
+                        | $e^{(t)}$ | Word embedding at position $t$ |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $h^{(t)}$ | Hidden state at position $t$ |
+                        | $\hat{y}^{(t)}$ | Output distribution at position $t$ |
+                        | $E$ | Embedding matrix ($\|V\| \times d$) |
+                        | $W$ | Weight matrices in neural networks in general; also input-to-hidden weights (fixed-window) in this lecture |
+                        | $W_e$ | Input-to-hidden weights (RNN) |
+                        | $W_h$ | Hidden-to-hidden weights (RNN) |
+                        | $W_o$ | Hidden-to-output weights |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $b_1, b_2$ | Bias vectors |
+                        | $d$ | Embedding dimension |
+                        | $h$ | Hidden state dimension |
+                        | $g$ | Non-linear activation (tanh, etc.) |
+                        | Perplexity | $\exp(-\frac{1}{T}\sum_t \log P(x^{(t)}))$ |
                     </textarea>
                 </section>
             </section>

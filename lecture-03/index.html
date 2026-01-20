@@ -159,7 +159,7 @@
                         **Classifier**: A function from inputs $x$ to labels $y$
                         - Assign a score to each label, choose highest-scoring one:
 
-                        $$\hat{y} = \arg\max_y \text{score}(x, y, w)$$
+                        $$\hat{y} = \arg\max_y \text{score}(x, y; \theta)$$
                     </textarea>
                 </section>
 
@@ -752,6 +752,51 @@
                 <section data-markdown>
                     <textarea data-template>
                         # Questions? or 💻
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $x$ | Input text |
+                        | $y$ | True label |
+                        | $\hat{y}$ | Predicted label |
+                        | $N$ | Number of training examples |
+                        | $C$ | Number of classes |
+                        | $\theta$ | Model parameters, including all the parameters |
+                        | $\mathbf{w}$ | Weight vector (logistic regression); in this special case, $\theta=\\{\mathbf{w}\\}$ |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $\mathbf{f}(x)$ | Feature vector for input $x$ |
+                        | $P(y\|x; \theta)$ | Probability of label given input |
+                        | $\sigma(s)$ | Sigmoid function: $\frac{1}{1+e^{-s}}$ |
+                        | $\text{softmax}$ | Converts scores to probabilities |
+                        | $H(p, q)$ | Cross-entropy between $p$ and $q$ |
+                        | $\mathcal{L}(\theta)$ | Loss function |
+                        | $\alpha$ | Learning rate |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $\nabla_\theta \mathcal{L}$ | Gradient of loss w.r.t. $\theta$ |
+                        | $f_w(x)$ | Feature for word $w$ (e.g., indicator) |
+                        | $e_i$ | Embedding for word $i$ (DAN) |
+                        | $\bar{e}$ | Average embedding |
                     </textarea>
                 </section>
             </section>

@@ -740,6 +740,50 @@
                         # Questions?
                     </textarea>
                 </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $V$ | Vocabulary (set of all words) |
+                        | $\|V\|$ | Vocabulary size |
+                        | $w$ | A word in the vocabulary |
+                        | $v_w$ | Embedding vector when $w$ is center word |
+                        | $u_w$ | Embedding vector when $w$ is context word |
+                        | $c, o$ | Center word, context (outside) word |
+                        | $P(o\|c)$ | Probability of context word given center |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $\mathbf{M}$ | Co-occurrence or document-term matrix |
+                        | $\mathbf{U}, \mathbf{\Sigma}, \mathbf{V}$ | SVD decomposition matrices |
+                        | $k$ | Reduced dimensionality |
+                        | $\theta$ | Model parameters |
+                        | $J(\theta)$ | Objective function (to minimize) |
+                        | $T$ | Number of positions in corpus |
+                        | $m$ | Context window size |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary (cont.)
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $\alpha$ | Learning rate |
+                        | $\sigma(x)$ | Sigmoid function: $\frac{1}{1+e^{-x}}$ |
+                        | $K$ | Number of negative samples |
+                    </textarea>
+                </section>
             </section>
         </div>
     </div>
