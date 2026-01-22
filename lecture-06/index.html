@@ -191,13 +191,23 @@
                     <textarea data-template>
                         ## LLMs are Built on Transformers
 
+                        <img src="images/attention_paper.png" alt="Attention Is All You Need paper" style="max-height: 500px;">
+
+                        <p class="citation"><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> by Vaswani et al. (2017)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## LLMs are Built on Transformers
+
                         Transformer: A network architecture based on attention
 
                         - Replaces recurrence with Self attention
                         - Enables parallel processing
                         - Handles long-range dependencies
 
-                        <p class="citation">Vaswani et al. (2017): Attention Is All You Need</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> by Vaswani et al. (2017)</p>
                     </textarea>
                 </section>
 
@@ -220,8 +230,7 @@
 
                         </div>
                         <div style="flex: 1; text-align: center;">
-                        <img src="images/transformer.jpg" alt="Transformer architecture" style="max-height: 500px;">
-                        <p class="citation">Li & Shapovalenko. Introduction to Deep Learning</p>
+                        <img src="images/transformer.png" alt="Transformer architecture" style="max-height: 500px;">
                         </div>
                         </div>
                     </textarea>
@@ -260,7 +269,7 @@
                         2. Fine-tuning: Adapt to specific tasks and instruction following
                         3. RLHF: Align with human preferences
 
-                        <p class="citation">Based on Li & Shapovalenko's Introduction to Deep Learning slides</p>
+                        
                     </textarea>
                 </section>
 
@@ -276,7 +285,7 @@
                         Lots of data, learn general things. May serve as parameter initialization.
                         Usually requires significant computational resources and time.
 
-                        <p class="citation">Li & Shapovalenko. Introduction to Deep Learning</p>
+                        
                     </textarea>
                 </section>
 
@@ -301,8 +310,8 @@
 
                     
                         <div style="flex: 1; text-align: center;">
-                        <img src="images/rlhf.png" alt="RLHF diagram" style="max-height: 600px;">
-                        <p class="citation">OpenAI 2022</p>
+                        <img src="images/rlhf.png" alt="RLHF diagram" style="max-width: 60%;">
+                        <p class="citation"><a href="https://arxiv.org/abs/2203.02155">Training language models to follow instructions with human feedback<a> by Ouyang et al. 2022</p>
                         </div>
                         </div>
                     </textarea>
@@ -324,7 +333,7 @@
                         - Consistent: no inter-annotator disagreement
                         - Can generate unlimited training signal
 
-                        <p class="citation">DeepSeek-AI 2025</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2501.12948">DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning</a> by DeepSeek-AI 2026</p>
                     </textarea>
                 </section>
 
@@ -471,7 +480,7 @@
                     <textarea data-template>
                         ## A Concrete Example
 
-                        <img src="images/ex_1.png" alt="Self attention example step 1" style="max-width: 90%;">
+                        The chicken didn't cross the road because it was too tired.
                     </textarea>
                 </section>
 
@@ -479,9 +488,9 @@
                     <textarea data-template>
                         ## A Concrete Example
 
-                        Coreference resolution?
+                        Coreference resolution? What does "it" refer to?
 
-                        <img src="images/ex_2.png" alt="Self attention example step 2" style="max-width: 90%;">
+                        The chicken didn't cross the road because **it** was too tired.
                     </textarea>
                 </section>
 
@@ -491,7 +500,7 @@
 
                         Attention from "it"
 
-                        <img src="images/ex_3.png" alt="Self attention example step 3" style="max-width: 90%;">
+                        <img src="images/ex.png" alt="Self attention example step 3" style="max-width: 90%;">
                     </textarea>
                 </section>
 
@@ -797,32 +806,69 @@
                     </textarea>
                 </section>
 
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Key Equations
 
-                        Attention:
-                        $$\operatorname{Attention}(Q, K, V) = \operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
-
-                        Multi-Head:
-                        $$\operatorname{MultiHead}(Q, K, V) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O$$
-                    </textarea>
-                </section>
-
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Reading
-
-                        - Vaswani et al. (2017): Attention Is All You Need
-                        - Jay Alammar: The Illustrated Transformer
-                    </textarea>
-                </section>
-
+                
                 <section data-markdown>
                     <textarea data-template>
                         # Questions?
                     </textarea>
                 </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary: Dimensions
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $n$ | Sequence length |
+                        | $d$ | Model dimension (embedding size) |
+                        | $d_k$ | Key/Query dimension |
+                        | $d_v$ | Value dimension |
+                        | $h$ | Number of attention heads |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary: Matrices
+
+                        | Symbol | Shape | Meaning |
+                        |--------|-------|---------|
+                        | $X$ | $n \times d$ | Input sequence matrix |
+                        | $W^Q$ | $d \times d_k$ | Query projection |
+                        | $W^K$ | $d \times d_k$ | Key projection |
+                        | $W^V$ | $d \times d_v$ | Value projection |
+                        | $W^O$ | $hd_v \times d$ | Output projection |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary: Q, K, V
+
+                        | Symbol | Shape | Meaning |
+                        |--------|-------|---------|
+                        | $Q$ | $n \times d_k$ | Query matrix ($XW^Q$) |
+                        | $K$ | $n \times d_k$ | Key matrix ($XW^K$) |
+                        | $V$ | $n \times d_v$ | Value matrix ($XW^V$) |
+                        | $q_t$ | $d_k$ | Query vector for position $t$ |
+                        | $k_j$ | $d_k$ | Key vector for position $j$ |
+                        | $v_j$ | $d_v$ | Value vector for position $j$ |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary: Attention
+
+                        | Symbol | Shape | Meaning |
+                        |--------|-------|---------|
+                        | $e_{tj}$ | scalar | Attention score from $t$ to $j$ |
+                        | $\alpha_{tj}$ | scalar | Attention weight (after softmax) |
+                        | $o_t$ | $d_v$ | Output vector for position $t$ |
+                    </textarea>
+                </section>
+
             </section>
         </div>
     </div>
