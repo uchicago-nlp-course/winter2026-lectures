@@ -565,13 +565,27 @@
 
                 <section data-markdown>
                     <textarea data-template>
+                        ## Discussion: A Problem with Self-Attention
+
+                        So far in the equation, each position attends to all positions.
+
+                        **Question: Why might this be a problem for language modeling?**
+
+                        Recall: Language models predict the next token given previous tokens.
+
+                        Discuss with your neighbor for 2 minutes.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
                         ## Causal Masking
 
                         For autoregressive language models, we must not look at future tokens.
 
                         Mask out future positions by setting their scores to $-\infty$:
 
-                        $$e_{ij} = \begin{cases} \frac{q_i^T k_j}{\sqrt{d_k}} & \text{if } j \leq i \\ -\infty & \text{if } j > i \end{cases}$$
+                        $$e_{ij} = \left\\{ \begin{array}{ll} \frac{q_i^T k_j}{\sqrt{d_k}} & j \leq i \\\ -\infty & j > i \end{array} \right.$$
 
                         After softmax, future positions get zero weight.
 
@@ -579,6 +593,22 @@
                     </textarea>
                 </section>
             
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Parameter Count
+
+                        Setup:
+                        - Model dimension: $d = 512$
+                        - Key/Query dimension: $d_k = 64$
+                        - Value dimension: $d_v = 64$
+                        - Projection matrices: $W^Q, W^K, W^V$
+
+                        **Question: How many parameters are in a single attention head?**
+
+                        Discuss with your neighbor for 2 minutes.
+                    </textarea>
+                </section>
 
                 <section data-markdown>
                     <textarea data-template>
@@ -625,6 +655,24 @@
                         $$\operatorname{MultiHead}(X) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_h)W^O$$
 
                         Typical settings: 8 heads with $d_k = d/8 = 64$ (for $d=512$)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Multi-Head Parameters
+
+                        Setup:
+                        - $h = 8$ heads
+                        - $d = 512$, $d_k = d_v = 64$
+                        - Each head has $W^Q_i, W^K_i, W^V_i$
+                        - Output projection $W^O$
+
+                        **Question: What is the total parameter count for multi-head attention?**
+
+                        Hint: Don't forget the output projection!
+
+                        Discuss with your neighbor for 2 minutes.
                     </textarea>
                 </section>
 
