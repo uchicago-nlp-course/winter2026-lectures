@@ -56,7 +56,7 @@
                     <textarea data-template>
                         ## Midterm Preparation
 
-                        I made a draft exam. I will test out with TAs first. Here is a non-spoiler study guide from Claude
+                        I made a draft exam. I will test out with TAs first. Here is a non-spoiler study guide from Claude.
                     </textarea>
                 </section>
 
@@ -125,7 +125,7 @@
 
             <section data-markdown>
                 <textarea data-template>
-                    ## Lecture Plan
+                    ## Lecture Outline
 
                     1. Recap: Causal Self-Attention
                     2. What's Missing?
@@ -141,7 +141,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. **Recap: Causal Self-Attention**
                         2. <span style="opacity: 0.3;">What's Missing?</span>
@@ -212,7 +212,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. **What's Missing?**
@@ -304,7 +304,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. <span style="opacity: 0.3;">What's Missing?</span>
@@ -386,7 +386,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. <span style="opacity: 0.3;">What's Missing?</span>
@@ -456,10 +456,35 @@
                         **GELU** (GPT, BERT): $g(x) = x \cdot \Phi(x)$
                         - Smoother than ReLU
 
-                        **SwiGLU** (LLaMA, modern):
-                        $$\text{FFN}(x) = (\text{Swish}(xW\_{\text{gate}}) \odot xW\_{\text{up}}) W\_{\text{down}}$$
-                        - Gated variant, better performance
-                        - 3 matrices: $W\_{\text{gate}}$, $W\_{\text{up}}$, $W\_{\text{down}}$
+                        **Swish** (modern): $g(x) = x \cdot \sigma(x)$
+                        - Self-gating: input controls itself
+                        - Similar to GELU but uses sigmoid instead of CDF
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Activation Functions
+
+                        **Swish** (modern): $g(x) = x \cdot \sigma(x)$
+                        - Self-gating: input controls itself
+                        - Similar to GELU but uses sigmoid instead of CDF
+
+                        <img src="images/swish.png" alt="Swish activation function" style="max-height: 350px;">
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## SwiGLU: Swish + Gated Linear Unit
+
+                        | | GELU FFN (GPT-2) | SwiGLU FFN (LLaMA) |
+                        |--|------------------|---------------------|
+                        | Formula | $W\_2 \text{GELU}(W\_1 x)$ | $W\_{\text{down}}(\text{Swish}(W\_{\text{gate}} x) \odot W\_{\text{up}} x)$ |
+                        | Matrices | 2 ($W\_1$, $W\_2$) | 3 ($W\_{\text{gate}}$, $W\_{\text{up}}$, $W\_{\text{down}}$) |
+                        | Mechanism | Transform then activate | Two paths: gate controls values |
+
+                        **Gating**: $\odot$ = element-wise multiply. Gate path (after Swish) acts as soft switch controlling what passes from value path.
 
                         <p class="citation">Shazeer (2020)</p>
                     </textarea>
@@ -470,7 +495,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. <span style="opacity: 0.3;">What's Missing?</span>
@@ -538,7 +563,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. <span style="opacity: 0.3;">What's Missing?</span>
@@ -781,7 +806,7 @@
             <section>
                 <section data-markdown>
                     <textarea data-template>
-                        ## Lecture Plan
+                        ## Lecture Outline
 
                         1. <span style="opacity: 0.3;">Recap: Causal Self-Attention</span>
                         2. <span style="opacity: 0.3;">What's Missing?</span>
