@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 11: Prompting and Decoding | CMSC 25700/35100 NLP</title>
+    <meta name="description" content="Prompting and Decoding in Natural Language Processing. Topics include zero-shot, few-shot, chain-of-thought, greedy decoding, sampling, beam search, and speculative decoding.">
+    <meta name="author" content="Chenhao Tan">
+    <meta name="keywords" content="NLP, Natural Language Processing, Prompting, Decoding, Chain-of-Thought, Sampling, Beam Search, University of Chicago">
+    <meta property="og:title" content="Lecture 11: Prompting and Decoding | CMSC 25700/35100 NLP">
+    <meta property="og:description" content="Prompting and Decoding in Natural Language Processing at University of Chicago.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="../assets/css/uchicago-theme.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Part 0: Title + Logistics + Framing -->
+            <section data-markdown>
+                <textarea data-template>
+                    # CMSC 25700/35100:
+                    ## Natural Language Processing
+
+                    ## Lecture 11: Prompting and Decoding
+
+                    <p style="text-align: center;">
+                    <strong>Chenhao Tan</strong><br/>
+                    University of Chicago<br/>
+                    @ChenhaoTan, @chenhaotan.bsky.social<br/>
+                    chenhao@uchicago.edu
+                    </p>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/1">Submit
+                    Music Recommendations</a>, kudos to Mina Lee <br>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/2">Submit
+                    jokes</a>
+                    </p>
+                </textarea>
+            </section>
+
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Logistics
+                        
+                        - Midterm grades and solutions
+                        - Office hour on Friday this week
+                        - [Feedback form](https://forms.gle/uSRgFc21m9xcoYhh9)
+                            - _"I appreciated how much time we spent drilling in the fundamentals of transformers, I've learned them before but feel like I genuinely understand them for the first time now and how they fit in decoder models"_
+                        - Project
+                            - Mentors
+                            - Blog entries due on Sundays
+                        - A3 is due
+                        - A4 is released
+                        - Late day policy
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lecture Outline
+
+                        - Prompting
+                        - Decoding
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Framing: A Different Way to Use Models
+
+                        **Previously**: train or finetune a model for each task (update parameters)
+
+                        **Now**: use a single pretrained model and interact through prompts (no parameter updates)
+
+                        This shift changed how we think about NLP.
+
+                        Two questions this lecture addresses:
+
+                        1. **How do we talk to models?** (Prompting)
+                        2. **How do models produce text?** (Decoding)
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 1: Prompting -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lecture Outline
+
+                        1. Prompting
+                        2. <span style="opacity: 0.3;">Decoding</span>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## What is Prompting?
+
+                        Language models produce probability distributions over next tokens.
+
+                        **Prompting** is how we interact with them at inference time.
+
+                        - No parameter updates
+                        - Just text in, text out
+                        - The model is frozen; we only control the input
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Document Completion Mindset
+
+                        A language model completes documents.
+
+                        Your prompt is the beginning of a document. The model generates the rest.
+
+                        If you write your prompt as a news article, you get news-style text.
+
+                        If you write your prompt as a Q&A, you get answers.
+
+                        The format of your prompt shapes the output.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Zero-Shot Prompting
+
+                        Give the model a task description with no examples.
+
+                        <p><span style="display: block; background: #2d2d2d; color: #f8f8f2; padding: 0.5em 1em; border-radius: 5px; text-align: left;">Classify the sentiment of the following review<br>as positive or negative.<br><br>Review: "The movie was a waste of time."<br>Sentiment:</span></p>
+
+                        The model uses its pretraining knowledge to respond.
+
+                        Works well for tasks the model has seen during pretraining.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## In-Context Learning (Few-Shot)
+
+                        Provide examples in the prompt to demonstrate the task.
+
+                        <p><span style="display: block; background: #2d2d2d; color: #f8f8f2; padding: 0.5em 1em; border-radius: 5px; text-align: left;">Classify the sentiment as positive or negative.<br><br>Review: "I loved this film!" Sentiment: positive<br>Review: "Terrible acting." Sentiment: negative<br>Review: "A masterpiece of cinema." Sentiment:</span></p>
+
+                        The model learns the pattern from the examples and applies it.
+
+                        No gradient updates. The examples are just part of the input.
+
+                        <p class="citation">Brown et al. (2020)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: How Many Shots?
+
+                        What is the difference between zero-shot, one-shot, and few-shot prompting?
+
+                        - A) They use different model architectures
+                        - B) They differ in how many gradient updates are performed
+                        - C) They refer to different training datasets
+                        - D) They differ in how many examples are provided in the prompt
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Answer: How Many Shots?
+
+                        **D) They differ in how many examples are provided in the prompt**
+
+                        - **Zero-shot**: no examples, just a task description
+                        - **One-shot**: one example
+                        - **Few-shot**: a handful of examples (typically 2-10)
+
+                        All three use the same frozen model. No parameters are updated.
+                    </textarea>
+                </section>
+
+                <section>
+                    <h2>Chain-of-Thought Prompting</h2>
+                    <p>Ask the model to reason step by step before giving an answer.</p>
+                    <img src="images/cot-wei.png" alt="Chain-of-thought prompting example" style="max-width: 80%;">
+                    <p class="citation">Wei et al. (2022)</p>
+                </section>
+
+                <section>
+                    <h2>Zero-Shot Chain-of-Thought</h2>
+                    <p>Simply add <strong>"Let's think step by step"</strong> to the prompt.</p>
+                    <p>No need to provide worked examples.</p>
+                    <img src="images/kojima-fig1.png" alt="Why chain-of-thought works" style="max-width: 80%;">
+                    <p class="citation"><a href="https://arxiv.org/abs/2205.11916">Kojima et al. (2022)</a></p>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Does CoT Work?
+
+
+                        Discuss with your neighbor (2 min):
+                        - What changes when the model produces intermediate steps?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Does CoT Work?
+
+                        Think about this from the perspective of how autoregressive models work.
+
+                        - More output tokens = more computation
+                        - Intermediate steps serve as "scratch space"
+                        - The model can condition on its own reasoning
+
+                        Without CoT, the model must jump from question to answer in one step.
+
+                        With CoT, it gets to build up to the answer incrementally.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Prompting is an Open Field
+
+                        Carrot or Stick?
+
+                        There are ideas floating around about whether it improves LLM performance to be nice and say "thank you" to them or to be strict and commanding. There is empirical evidence for both views but I don't think we have a definitive answer yet. Why is that? Can we do a meta-study to see which side is more convincing?
+
+                        [by Dang Nguyen](https://hypogenic.ai/ideahub/idea/XV7u2oSizHunlsqMvvba)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Prompting is an Open Field
+
+                        We can use more [prompting science](https://arxiv.org/abs/2507.00163)!
+                        <img src="images/prompting-fig1.png" alt="Why chain-of-thought works" style="max-width: 80%;">
+                    </textarea>
+                </section>
+
+
+                <section>
+                    <h2>Beyond Prompting</h2>
+                    <div style="display: flex; align-items: center;">
+                        <div style="flex: 1;" data-markdown>
+                            <textarea data-template>
+                        **Retrieval-Augmented Generation (RAG)**
+                        - Retrieve relevant documents
+                        - Add them to the prompt
+                        - Generate conditioned on retrieved context
+
+                        **Tool Use**
+                        - Model requests external tools (calculator, search, code execution)
+                        - Results are fed back into the prompt
+
+                        Both extend what a frozen model can do without parameter updates.
+                            </textarea>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <img src="images/rag-aws.jpg" alt="RAG diagram" style="max-height: 300px;">
+                        </div>
+                    </div>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Prompting Summary
+
+                        | Method | Examples? | Reasoning? | External Info? |
+                        |--------|-----------|------------|----------------|
+                        | Zero-shot | No | No | No |
+                        | Few-shot | Yes | No | No |
+                        | Chain-of-Thought | Optional | Yes | No |
+                        | RAG | Optional | Optional | Yes (retrieved docs) |
+                        | Tool Use | Optional | Optional | Yes (tool outputs) |
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 2: Decoding -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lecture Outline
+
+                        1. <span style="opacity: 0.3;">Prompting</span>
+                        2. Decoding
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Big Question
+
+                        Language models produce **probability distributions** over next tokens.
+
+                        They do not produce text directly.
+
+                        $$P(x_t | x_{&lt;t})$$
+
+                        **Decoding** is the algorithm that converts these distributions into actual text.
+
+                        This is a design choice, not a fixed property of the model.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Greedy Decoding
+
+                        At each step, pick the most probable token:
+
+                        $$x_t = \arg\max_{w} P(w | x_{&lt;t})$$
+
+                        Properties:
+                        - Deterministic (in principle)
+                        - Fast (one forward pass per token)
+                        - This is what `temperature=0` gives you in most APIs
+                        - Works well for many tasks: code generation, classification, structured extraction
+                    </textarea>
+                </section>
+
+                <section>
+                    <h2>Greedy: When It Goes Wrong</h2>
+                    <p>Open-ended generation can produce repetition loops:</p>
+                    <img src="images/rep.png" alt="Repetition in greedy decoding" style="max-width: 80%;">
+                    <p class="citation">Example from <a href="https://arxiv.org/abs/1904.09751">The Curious Case of Neural Text Degeneration</a> by Holtzman et al.</p>
+                    <p>But note: for modern aligned models, greedy works much better than it used to.</p>
+                </section>
+
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Sampling
+
+                        Instead of argmax, **sample** from the distribution:
+
+                        $$x_t \sim P(\cdot | x_{&lt;t})$$
+
+                        Pure sampling is too random (the long tail includes nonsense tokens).
+
+                        We need ways to truncate or reshape the distribution.
+                    </textarea>
+                </section>
+
+               
+
+                
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Top-k and Nucleus (Top-p) Sampling
+
+                        **Top-k sampling** (Fan et al., 2018):
+                        - Only sample from the top $k$ tokens
+                        - Fixed $k$ regardless of distribution shape
+
+                        **Nucleus / Top-p sampling** (Holtzman et al., 2019):
+                        - Sample from smallest set whose cumulative probability $\geq p$
+                        - Adaptive: few tokens when confident, many when uncertain
+                    </textarea>
+                </section>
+
+                <section>
+                    <h2>Top-k and Nucleus (Top-p) Sampling</h2>
+                    <img src="images/branching.png" alt="Distribution shapes: peaky vs flat" style="max-width: 100%;">
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Sampling
+
+                        Why might top-k with a fixed $k$ be problematic compared to nucleus sampling?
+
+                        - A) Top-k is slower to compute
+                        - B) Top-k always includes too few tokens
+                        - C) Top-k does not adapt to the shape of the distribution: it may include nonsense tokens when the distribution is peaked, or exclude valid tokens when it is flat
+                        - D) Top-k requires a separate model
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Answer: Sampling
+
+                        **C) Top-k does not adapt to the shape of the distribution**
+
+                        When the model is confident (peaked distribution), top-k with $k=50$ includes many low-probability tokens.
+
+                        When the model is uncertain (flat distribution), top-k with $k=50$ may exclude plausible continuations.
+
+                        Nucleus sampling adapts: it includes 2 tokens when the model is confident and 200 when it is uncertain.
+                    </textarea>
+                </section>
+
+                 <section data-markdown>
+                    <textarea data-template>
+                        ## Temperature Scaling
+
+                        Adjust the "sharpness" of the distribution before sampling:
+
+                        $$P(w | x_{&lt;t}) = \frac{\exp(z_w / T)}{\sum_{w'} \exp(z_{w'} / T)}$$
+
+                        - $T = 1$: original distribution
+                        - $T &lt; 1$: sharper (more deterministic)
+                        - $T > 1$: flatter (more random)
+                        - $T \to 0$: becomes greedy decoding
+                    </textarea>
+                </section>
+
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Does Greedy Work Now?
+
+                        We showed that greedy decoding used to produce repetitive, degenerate text.
+
+                        But modern models (ChatGPT, Claude) work well with greedy decoding.
+
+                        Discuss with your neighbor (2 min):
+                        - What changed? Why does greedy work better now?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Does Greedy Work Now?
+
+                        Early LMs (GPT-2 era):
+                        - Broad distributions, high branching factor (~10+ plausible next tokens)
+                        - Greedy picks one path and gets stuck in loops
+
+                        Modern aligned models (ChatGPT, Claude):
+                        - RLHF/alignment concentrates probability mass
+                        - Branching factor drops to ~1-2 plausible tokens
+                        - Greedy and sampling produce similar results
+
+                        Alignment largely "solved" the decoding problem by narrowing the distribution.
+
+                        <p class="citation">Yang &amp; Holtzman (2025)</p>
+                    </textarea>
+                </section>
+
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Beam Search
+
+                        Instead of committing to one token at each step, keep the top $B$ candidates.
+
+                        At each step:
+                        1. Expand each of the $B$ candidates by all possible next tokens
+                        2. Score each expanded sequence
+                        3. Keep only the top $B$ sequences
+
+                        Returns the highest-scoring complete sequence.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Beam Search: Example ($B = 2$)
+
+                        **Step 1**: Start with `<s>`, compute $P(w_1)$
+                        - Candidates: "The" (0.4), "A" (0.3), "It" (0.15), ...
+                        - Keep top 2: **"The"** (0.4), **"A"** (0.3)
+
+                        **Step 2**: Expand each beam, compute $P(w_2 | w_1)$
+                        - From "The": "The cat" (0.4 x 0.3 = 0.12), "The dog" (0.4 x 0.25 = 0.10)
+                        - From "A": "A big" (0.3 x 0.3 = 0.09), "A small" (0.3 x 0.2 = 0.06)
+                        - All 4 candidates: 0.12, 0.10, 0.09, 0.06
+                        - Keep top 2: **"The cat"** (0.12), **"The dog"** (0.10)
+
+                        **Step 3**: Expand again, compute $P(w_3 | w_1, w_2)$
+                        - From "The cat": "The cat sat" (0.036), "The cat is" (0.024)
+                        - From "The dog": "The dog ran" (0.030), "The dog is" (0.020)
+                        - Keep top 2: **"The cat sat"** (0.036), **"The dog ran"** (0.030)
+
+                        Note: greedy would pick "The" then "cat" then "sat" and miss "The dog ran" entirely.
+                    </textarea>
+                </section>
+
+                <section>
+                    <h2>Beam Search: Problems</h2>
+                    <div style="display: flex; align-items: center;">
+                        <div style="flex: 1;" data-markdown>
+                            <textarea data-template>
+                        Dominated machine translation (~2014-2018).
+
+                        Problems for open-ended generation:
+                        - **Length bias**: shorter sequences score higher
+                        - **Generic text**: high-probability = bland
+                        - Beam search text looks very different from human text
+                            </textarea>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <img src="images/beam-vs-human.png" alt="Beam search vs human text" style="max-height: 400px;">
+                        </div>
+                    </div>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Beam Search
+
+                        If beam width $B = 1$, what does beam search reduce to?
+
+                        - A) Random sampling
+                        - B) Greedy decoding
+                        - C) Exhaustive search
+                        - D) Nucleus sampling
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Answer: Beam Search
+
+                        **B) Greedy decoding**
+
+                        With $B = 1$, you keep only 1 candidate at each step and always pick the highest-scoring token. That is exactly greedy decoding.
+
+                        Beam search with $B > 1$ explores more of the search space but at $B$ times the compute cost.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Best-of-N Sampling
+
+                        A simple but powerful strategy:
+
+                        1. Generate $N$ complete candidates independently (using sampling)
+                        2. Score each candidate with a reward model or scoring function
+                        3. Return the best one
+
+                        Theoretically Pareto optimal for trading off compute and quality.
+
+                        Trade-off: $N \times$ the compute cost of a single sample.
+
+                        <p class="citation">Gui et al. (2024)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Speculative Decoding
+
+                        Key bottleneck: LLM inference is memory-bandwidth bound, not compute bound. Each token requires a full forward pass.
+
+                        Idea: use a **small draft model** + **large target model**.
+
+                        1. Draft model generates $N$ tokens quickly
+                        2. Target model verifies all $N$ tokens **in one forward pass**
+                        3. Accept tokens where they agree
+                        4. Reject at the first disagreement, resample from target
+
+                        Result: ~2-3x speedup with **identical** output distribution.
+
+                        <p class="citation">Leviathan et al. (2023); Chen et al. (2023)</p>
+                    </textarea>
+                </section>
+
+                
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Speculative Decoding: Example
+
+                        Prompt: "The capital of France is"
+
+                        **Round 1**: Draft model (e.g., GPT-2 small) proposes 4 tokens:
+                        - "Paris", ",", "a", "beautiful"
+
+                        Target model (e.g., Llama 70B) verifies all 4 in one forward pass:
+                        - "Paris": draft $q$ = 0.85, target $p$ = 0.90. Accept. ($p \geq q$)
+                        - ",": draft $q$ = 0.50, target $p$ = 0.55. Accept. ($p \geq q$)
+                        - "a": draft $q$ = 0.30, target $p$ = 0.10. Reject with prob $1 - p/q = 0.67$. Resample from adjusted distribution.
+                        - Resampled token: "which"
+
+                        Result so far: "Paris , which" (3 tokens from 1 target forward pass)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Speculative Decoding: Example (cont.)
+
+                        **Round 2**: Draft model continues from "Paris , which" and proposes 4 more tokens:
+                        - "is", "known", "for", "its"
+
+                        Target model verifies all 4 in one forward pass:
+                        - "is": Accept
+                        - "known": Accept
+                        - "for": Accept
+                        - "its": Accept
+
+                        Result so far: "Paris , which is known for its" (7 tokens from 2 target forward passes)
+
+                        Without speculation: 7 tokens = 7 forward passes of the large model.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Speculative Decoding
+
+                        Why can the target model verify $N$ draft tokens in one forward pass?
+
+                        - A) The target model uses a shallower architecture optimized for batch verification
+                        - B) The draft tokens are compressed into a single embedding, so verification is a single lookup
+                        - C) The KV cache from the draft model is transferred to the target model, avoiding recomputation
+                        - D) The draft tokens form a complete sequence, so the target model can compute all next-token probabilities in parallel (just like processing a prompt)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Answer: Speculative Decoding
+
+                        **D) The draft tokens form a complete sequence, so the target model can compute all next-token probabilities in parallel (just like processing a prompt)**
+
+                        This is the same reason prompt processing is fast: given a full sequence, the Transformer computes outputs at all positions in parallel via matrix operations. Verification is just "prompt processing" the draft tokens. The slow part of autoregressive generation is that each token depends on the previous one. Speculative decoding bypasses this by proposing tokens in bulk.
+                    </textarea>
+                </section>
+                
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Fun Fact
+
+                        Two teams independently discovered speculative decoding at the same time:
+
+                        - **Google Research**: <a href="https://arxiv.org/abs/2211.17192">Fast Inference from Transformers via Speculative Decoding"</a> by Leviathan, Kalman, Matias
+                        - **DeepMind**: <a href="https://arxiv.org/abs/2302.01318">Accelerating Large Language Model Decoding with Speculative Sampling</a> by Chen, Borgeaud, Irving, Lespiau, Sifre, Jumper
+
+                        Both papers appeared within months of each other in late 2022, early 2023, with nearly identical algorithms. 
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 3: Summary + References -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Decoding Summary
+
+                        | Method | Deterministic? | Speed | Goal |
+                        |--------|---------------|-------|------|
+                        | Greedy | Yes | Fast | Most probable token |
+                        | Sampling (top-p/k) | No | Fast | Diversity |
+                        | Beam Search | Yes | $B \times$ slower | High-probability sequence |
+                        | Best-of-N | No | $N \times$ slower | Best of multiple samples |
+                        | Speculative | Matches target | ~2-3x faster | Speed up inference |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Notation Summary
+
+                        | Symbol | Meaning |
+                        |--------|---------|
+                        | $x_t$ | Token at position $t$ |
+                        | $x_{&lt;t}$ | All tokens before position $t$ |
+                        | $P(w \| x_{&lt;t})$ | Probability of token $w$ given previous tokens |
+                        | $z_w$ | Logit (unnormalized score) for token $w$ |
+                        | $T$ | Temperature |
+                        | $k$ | Number of top tokens in top-k sampling |
+                        | $p$ | Cumulative probability threshold in nucleus sampling |
+                        | $B$ | Beam width in beam search |
+                        | $N$ | Number of candidates (best-of-N) or draft tokens (speculative) |
+                        | $q$, $p$ | Draft and target model probabilities (speculative decoding) |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        # Questions?
+                    </textarea>
+                </section>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/math/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            width: 1280,
+            height: 720,
+            margin: 0.04,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealMath.KaTeX ]
+        });
+    </script>
+</body>
+</html>
