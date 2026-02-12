@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 12: Benchmarks and Evaluation | CMSC 25700/35100 NLP</title>
+    <meta name="description" content="Benchmarks and Evaluation in Natural Language Processing. Topics include evaluation metrics, benchmark crisis, agent evaluation, and modern benchmarks.">
+    <meta name="author" content="Chenhao Tan">
+    <meta name="keywords" content="NLP, Natural Language Processing, Benchmarks, Evaluation, SWE-bench, TerminalBench, METR, Agent Evaluation, University of Chicago">
+    <meta property="og:title" content="Lecture 12: Benchmarks and Evaluation | CMSC 25700/35100 NLP">
+    <meta property="og:description" content="Benchmarks and Evaluation in Natural Language Processing at University of Chicago.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="../assets/css/uchicago-theme.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Part 0: Title + Outline -->
+            <section data-markdown>
+                <textarea data-template>
+                    # CMSC 25700/35100:
+                    ## Natural Language Processing
+
+                    ## Lecture 12: Benchmarks and Evaluation
+
+                    <p style="text-align: center;">
+                    <strong>Chenhao Tan</strong><br/>
+                    University of Chicago<br/>
+                    @ChenhaoTan, @chenhaotan.bsky.social<br/>
+                    chenhao@uchicago.edu
+                    </p>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/1">Submit
+                    Music Recommendations</a>, kudos to Mina Lee <br>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/2">Submit
+                    jokes</a>
+                    </p>
+                </textarea>
+            </section>
+
+            <section data-markdown>
+                <textarea data-template>
+                    ## Lecture Outline
+
+                    1. Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)
+                    2. The Benchmark Crisis (explosion, saturation, contamination, gaming)
+                    3. Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)
+                </textarea>
+            </section>
+
+            <!-- Part 1: Evaluation Basics -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ol>
+                        <li><strong>Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</strong></li>
+                        <li style="color: #ccc;">The Benchmark Crisis (explosion, saturation, contamination, gaming)</li>
+                        <li style="color: #ccc;">Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</li>
+                    </ol>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Close-ended Evaluation
+
+                        Tasks with a limited number of correct answers (classification, NLI, NER, ...)
+
+                        | Metric | Definition |
+                        |--------|------------|
+                        | Accuracy | Correct predictions / Total predictions |
+                        | Precision | True positives / Predicted positives |
+                        | Recall | True positives / Actual positives |
+                        | F1 | Harmonic mean of precision and recall |
+
+                        Fast and cheap to compute. Similar to standard ML evaluation.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Open-ended Evaluation
+
+                        Tasks with many valid outputs (translation, summarization, dialogue, ...)
+
+                        **ROUGE-N** (recall-based): what fraction of the reference's n-grams appear in the candidate?
+
+                        $$\text{ROUGE-N} = \frac{|\text{n-grams in ref} \cap \text{n-grams in cand}|}{|\text{n-grams in ref}|}$$
+
+                        - $N$: n-gram size (ROUGE-1 = unigrams, ROUGE-2 = bigrams)
+                        - Numerator: number of n-grams that appear in **both** reference and candidate
+                        - Denominator: total number of n-grams in the reference
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## ROUGE-1 Worked Example
+
+                        Reference: **"Well heck yes it is"** (5 unigrams: Well, heck, yes, it, is)
+
+                        Candidate: **"Heck yes!"** (2 unigrams: Heck, yes)
+
+                        $$\text{ROUGE-1} = \frac{\text{matched ref unigrams}}{\text{total ref unigrams}} = \frac{|\lbrace\text{heck, yes}\rbrace|}{|\lbrace\text{Well, heck, yes, it, is}\rbrace|} = \frac{2}{5} = 0.40$$
+
+                        Note: ROUGE is **recall** over the reference. It asks: how much of the reference is covered by the candidate?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Beyond N-gram Overlap
+
+                        Reference: "Well heck yes it is" &nbsp;&nbsp; (ROUGE-1 recall)
+
+                        | Response | Matched | ROUGE-1 | Correct? |
+                        |----------|---------|---------|----------|
+                        | "Heck yes!" | heck, yes | 2/5 = 0.40 | Yes |
+                        | "Yes!" | yes | 1/5 = 0.20 | Yes (false negative) |
+                        | "You know it!" | it | 1/5 = 0.20 | Yes (false negative) |
+                        | "Heck no!" | heck | 1/5 = 0.20 | No (false positive) |
+
+                        ROUGE cannot distinguish "Heck yes!" from "Heck no!" when they share similar surface tokens with the reference.
+
+                        **BERTScore** addresses this by using contextual embeddings and cosine similarity instead of exact matching.
+
+                        <p class="citation">BERTScore: Evaluating Text Generation with BERT. Zhang et al. (2020)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## BLEU: Precision-based N-gram Overlap
+
+                        BLEU flips the direction: what fraction of the **candidate's** n-grams appear in the reference?
+
+                        **Step 1**: Compute modified precision to get BLEU-N:
+
+                        $p_n = \frac{\sum_{\text{ngram} \in \text{cand}} \min(C_{\text{cand}}, C_{\text{ref}})}{\sum_{\text{ngram} \in \text{cand}} C_{\text{cand}}}$
+
+                        **Step 2**: Combine using a geometric mean (that is where the $\exp$ comes from):
+
+                        $\text{BLEU} = BP \cdot \exp\left(\sum_{n=1}^{N} \frac{1}{N} \log p_n\right) = BP \cdot \left(\prod_{n=1}^{N} p_n\right)^{1/N}$
+
+                        **Step 3**: Brevity penalty $BP = \min\left(1,\; e^{1 - r/c}\right)$ penalizes candidates shorter than the reference ($c$ = candidate length, $r$ = reference length).
+
+                        Commonly used for machine translation evaluation.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Human Evaluation
+
+                        The "gold standard" for text generation, but:
+
+                        - Slow and expensive
+                        - Not reproducible: "Only 5% of human evaluations are repeatable" (Belz et al., 2023)
+                        - Inter-annotator and intra-annotator disagreement
+                        - Biases and shortcuts when incentives are misaligned
+
+                    </textarea>
+                </section>
+
+                
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Chatbot Arena
+
+                        Side-by-side blind comparison at scale
+
+                        - Users type their own prompts
+                        - Two anonymous models respond
+                        - Users vote for the better response
+                        - Votes aggregated using Elo rating system
+
+                        The most widely trusted LLM ranking today.
+
+                        <p class="citation">Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference. Zheng et al. (2024)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## LLM-as-a-Judge
+
+                        Use an LLM as a reference-free evaluator
+
+                        - Much faster and cheaper than human evaluation
+                        - "GPT-4 can match human preferences, achieving over 80% agreement"
+
+                        **Benchmarks using LLM-as-a-Judge**:
+                        - **MT-Bench**: 80 multi-turn questions across 8 categories (writing, math, coding, ...). GPT-4 rates responses on a 1-10 scale.
+                        - **AlpacaEval**: ~800 instructions. GPT-4 picks the better response between a candidate model and a reference model.
+
+                        **Limitations**: Length bias (prefers longer outputs), position bias (prefers the first response), self-bias (models prefer their own outputs)
+
+                        <p class="citation">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. Zheng et al. (2023)</p>
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 2: The Benchmark Crisis -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ol>
+                        <li style="color: #ccc;">Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</li>
+                        <li><strong>The Benchmark Crisis (explosion, saturation, contamination, gaming)</strong></li>
+                        <li style="color: #ccc;">Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</li>
+                    </ol>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Benchmark Explosion
+
+                        | Model | Year | # Benchmarks Evaluated |
+                        |-------|------|------------------------|
+                        | Transformer | 2017 | 2 (WMT datasets) |
+                        | GPT-1 | 2018 | ~8 tasks |
+                        | GPT-2 | 2019 | ~15 tasks |
+                        | GPT-3 | 2020 | 40+ tasks |
+
+                        Single numbers (BLEU, perplexity) are no longer sufficient.
+
+                        GPT-3 was essentially an evaluation paper, with much less focus on training or architecture.
+                    </textarea>
+                </section>
+
+                <!-- <section data-markdown>
+                    <textarea data-template>
+                        ## The Evolution of Evaluation
+
+                        2017: **Metrics** (BLEU, ROUGE, perplexity)
+
+                        2019: **Benchmarks** (GLUE, SuperGLUE)
+
+                        2020: **Capabilities** (what can the model do?)
+
+                        2023: **Vibes** (does it feel right when you use it?)
+
+                        Each stage required fundamentally different evaluation approaches.
+                    </textarea>
+                </section> -->
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Streetlight Effect
+
+                        > A man searches for his keys under a streetlight. Someone asks, "Why are you looking here?" He replies, "Because the light is better here."
+
+                        We measure what is *easy* to measure, not what *matters*.
+
+                        - Token-level metrics let us track progress
+                        - But they did not capture what we actually cared about
+                        - The things that matter most (reasoning, reliability, safety) are the hardest to evaluate
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Three Horsemen of the Benchpocalypse
+
+                        **1. Data Contamination**
+                        Models trained on "the entire internet" inevitably see test data
+
+                        **2. Benchmark Saturation**
+                        Models exceed human performance; ceiling effects render benchmarks useless
+
+                        **3. Gaming the Metrics**
+                        Optimizing for benchmark scores instead of real capabilities
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Benchmark Saturation
+
+                        Benchmarks expire faster than we can create them:
+
+                        | Benchmark | Year | Time to Saturate |
+                        |-----------|------|------------------|
+                        | MNIST | 1998 | ~20 years |
+                        | GLUE | 2018 | 1 year |
+                        | SuperGLUE | 2019 | ~2 years |
+                        | MMLU | 2021 | ~3 years |
+
+                        <img src="images/dynabench-saturation.png" alt="Benchmark saturation over time" style="max-height: 250px;">
+
+                        <p class="citation">Dynabench: Rethinking Benchmarking in NLP. Kiela et al. (2021)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Data Contamination
+
+                        Models trained on the internet have likely seen test data.
+
+                        **Detection methods**:
+                        - **Min-k-prob**: Check if token probabilities are suspiciously high
+                        - **Exchangeability test**: Look for ordering signatures in training data
+
+                        No detection method currently works reliably. Closed models make verification even harder.
+
+                        <p class="citation">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Gaming the Metrics
+
+                        When a measure becomes a target, it ceases to be a good measure (Goodhart's Law).
+
+                        - Leaderboard pressure incentivizes benchmark-specific optimization
+                        - Models can be tuned to score well on benchmarks without real capability gains
+                        - Prompt formatting sensitivity: up to 76 accuracy points difference from subtle prompt changes
+
+                        <p class="citation">When Benchmarks are Targets: Revealing the Sensitivity of Large Language Model Leaderboards. Alzahrani et al. (2024)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz
+
+                        A model scores 92% on a benchmark. You paraphrase the test questions and the accuracy drops to 61%. What is the most likely explanation?
+
+                        - A) The model memorized the exact test examples during training
+                        - B) Paraphrasing changed the questions to be about different topics
+                        - C) The model relies on surface-level patterns that paraphrasing disrupts
+                        - D) The benchmark was too easy to begin with
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **A) The model memorized the exact test examples during training**
+
+                        A large drop from paraphrasing is a strong signal of **data contamination**: the model memorized the exact test examples rather than learning the underlying task.
+
+                        If the model had genuinely learned the task, semantically equivalent paraphrases should yield similar accuracy.
+
+                        Why not C? Surface-level patterns (e.g., keyword matching) would cause some drop, but not 31 points. That scale of drop points to memorization, not shallow heuristics.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Is Contamination Hard to Detect?
+
+                        A model scores 95% on a benchmark. How would you determine whether it has been contaminated?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: Why Is Contamination Hard to Detect?
+
+                        A model scores 95% on a benchmark. How would you determine whether it has been contaminated?
+
+                        1. What makes contamination different from genuine learning?
+                        2. If we paraphrase the test questions, what would we expect to see?
+                        3. Why can't we just check whether the test data appears in the training set?
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 3: Modern Evaluation -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ol>
+                        <li style="color: #ccc;">Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</li>
+                        <li style="color: #ccc;">The Benchmark Crisis (explosion, saturation, contamination, gaming)</li>
+                        <li><strong>Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</strong></li>
+                    </ol>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## From LLM Benchmarks to Agent Benchmarks
+
+                        Traditional LLM benchmarks test isolated capabilities (Q&A, classification, generation).
+
+                        Modern AI systems are **agents**: LLM + tools + environment + multi-step reasoning.
+
+                        New benchmarks must test **end-to-end task completion** in real environments:
+                        - Can the agent solve a real GitHub issue?
+                        - Can it set up a server from scratch?
+                        - Can it navigate a real website to complete a task?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## SWE-bench: Solving Real GitHub Issues
+
+                        Real GitHub issues from popular Python repositories. The agent must produce a working patch.
+
+                        **SWE-bench Verified** (500 human-validated issues):
+                        - Best: ~79% (Claude Opus 4.6 with scaffolding)
+                        - Rapid progress: 4% (2023) to 79% (2025)
+
+                        **SWE-bench Pro** (harder variant):
+                        - Best: ~23%
+                        - Tests multi-file, complex reasoning tasks
+
+                        <p class="citation">SWE-bench: Can Language Models Resolve Real-World GitHub Issues? Jimenez et al. (2024)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## SWE-bench: Example Task
+
+                        **Repo**: `sqlfluff/sqlfluff` &nbsp; **Issue**: [#1834](https://github.com/sqlfluff/sqlfluff/issues/1834)
+
+                        **Problem**: Add a `--quiet` flag to the `sqlfluff fix` CLI so it works cleanly in pre-commit hooks. Only options to increase verbosity exist.
+
+                        **Solution**: Add `-q`/`--quiet` (mutually exclusive with `--verbose`), modify the formatter to suppress output when verbosity is below zero, add test cases. Patch touches 3 files, ~47 lines changed.
+
+                        The agent must: read the issue, find the relevant code, produce a working patch, and pass existing tests.
+
+                        [Browse SWE-bench dataset](https://huggingface.co/datasets/princeton-nlp/SWE-bench)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## TerminalBench: Real Terminal Tasks
+
+                        89 tasks in real terminal environments: compiling code, debugging, configuring servers, recovering data.
+
+                        - Tests practical system administration and development skills
+                        - Best models: ~65%
+                        - Many tasks require multi-step reasoning and tool use
+                        - Highlights gap between "knowing" and "doing"
+
+                        <p class="citation">TerminalBench: Benchmarking LLM Agents in Real Terminal Environments. Zhu et al. (2026)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## TerminalBench: Example Task
+
+                        **Task**: `train-fasttext` &nbsp; Category: Model Training &nbsp; Difficulty: Hard
+
+                        **Problem**: Given Yelp review data, train a FastText text classification model that achieves at least 0.62 accuracy while keeping the model size under 150MB.
+
+                        **What the agent must do**:
+                        1. Prepare training data in the correct format
+                        2. Write and run a training script
+                        3. Tune hyperparameters to balance accuracy vs. model size
+                        4. Verify the result passes the automated checks
+
+                        All work happens in a terminal. No GUI, no notebook.
+
+                        [Browse TerminalBench tasks](https://www.tbench.ai/)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## WebArena + OSWorld
+
+                        **WebArena**: Realistic web tasks (shopping, forum posting, map navigation)
+                        - Progress: 14% (2023) to ~62% (2025-2026)
+
+                        **OSWorld**: 369 real computer tasks across Ubuntu/Windows/macOS
+                        - OSAgent reached 76%, above the 72% human baseline
+                        - Tasks: file management, app usage, system configuration
+
+                        Trend: agents are approaching (and sometimes exceeding) human performance on computer use tasks.
+
+                        <p class="citation">WebArena: A Realistic Web Environment for Building Autonomous Agents. Zhou et al. (2024); OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments. Xie et al. (2025)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## WebArena: Example Task
+
+                        **Task**: "Tell me the name of the customer who has the most cancellations in the history."
+
+                        The agent must navigate a realistic e-commerce admin panel (Magento-based):
+
+                        1. Log into the admin dashboard
+                        2. Navigate to the orders/customers section
+                        3. Filter or sort by cancelled orders
+                        4. Identify the customer with the highest count
+                        5. Return the name
+
+                        Multi-step web navigation + reading tables + reasoning over data.
+
+                        [Browse WebArena tasks](https://github.com/web-arena-x/webarena)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## METR Time Horizon
+
+                        METR measured the "50% task-completion time horizon": the task duration (for a human expert) at which AI succeeds 50% of the time.
+
+                        - This horizon has been **doubling every ~7 months**
+                        - Current: ~50-60 minutes (Claude 3.7 Sonnet)
+                        - Agents use 1.4-2.7x more steps than humans, even when successful
+
+                        **Implication**: If this trend continues, AI could automate tasks that take humans a full day within 1-2 years.
+
+                        <p class="citation">Measuring AI Ability to Complete Long Tasks. METR (2025)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## METR Time Horizon
+
+                        <img src="images/metr.png" alt="METR time horizon trend" style="max-height: 500px;">
+
+                        <p class="citation">Measuring AI Ability to Complete Long Tasks. METR (2025)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Discussion: What Does the METR Trend Mean?
+
+                        The 50% time horizon is doubling every ~7 months.
+
+                        Discuss with your neighbor:
+                        1. If AI can currently handle ~1-hour tasks, what does this mean in 3 years?
+                        2. What types of tasks will remain hard even if the time horizon keeps growing?
+                        3. Is task duration even the right way to measure AI capability? What does it miss?
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Part 4: Summary + References -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Summary: Old vs. Modern Evaluation
+
+                        | Aspect | Traditional | Modern |
+                        |--------|-------------|--------|
+                        | What | Isolated NLP tasks | End-to-end task completion |
+                        | Where | Static datasets | Real environments (terminals, browsers, OSes) |
+                        | How | Accuracy on test set | Success rate on real tasks |
+                        | Who | The model alone | Agent (model + tools + planning) |
+                        | Metric | BLEU, F1, accuracy | Task completion rate, time horizon |
+
+                        The shift from "can the model answer correctly?" to "can the agent complete the job?"
+                    </textarea>
+                </section>
+
+                
+
+                <section data-markdown>
+                    <textarea data-template>
+                        # Questions?
+                    </textarea>
+                </section>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/math/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            width: 1280,
+            height: 720,
+            margin: 0.04,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealMath.KaTeX ]
+        });
+    </script>
+</body>
+</html>
