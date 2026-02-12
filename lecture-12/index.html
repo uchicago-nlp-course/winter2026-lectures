@@ -48,8 +48,9 @@
 
                         * [Project](https://docs.google.com/spreadsheets/d/1gMsgMXXWlo4jfq7qCSumu-0HmY2TKxN0hWFiBwkZpQE/edit?gid=0#gid=0)
                             - mentors have been assigned
-                            - a new run for all projects have been done, check it out, please form the repo if you plan to use part of the code
+                            - a new run for all projects have been done, check it out, please fork the repo if you plan to use part of the code
                         * [Feedback form](https://forms.gle/uSRgFc21m9xcoYhh9)
+                        * Chris Potts is giving linguistics colloquium next week
                     </textarea>
                 </section>
                 <section data-markdown>
@@ -383,13 +384,17 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## Min-k-prob: Example
+                        ## Min-k-prob: How to Decide
 
-                        "The capital of France is **Paris**."
-                        - A model that memorized this assigns high probability to every token
-                        - A model that has not seen it may still predict "Paris" but will be less confident on function words in this exact arrangement
+                        Min-k-prob score alone is meaningless. You need a **comparison**:
 
-                        **Min-k-prob score** = average log-probability of the $k$% least-likely tokens. Higher score on test examples (compared to non-member examples) suggests contamination.
+                        1. Compute min-k-prob on **suspected data** (e.g., benchmark test examples)
+                        2. Compute min-k-prob on **reference data** (non-member text of similar style/domain)
+                        3. If the suspected data has significantly higher scores, it suggests contamination
+
+                        Example: compute min-k-prob on MMLU questions vs. newly written questions in the same format. If MMLU scores are much higher, the model likely saw MMLU during training.
+
+                        This is a **membership inference** problem: "is this specific text in the training set?"
 
                         <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a></p>
                     </textarea>
@@ -415,11 +420,11 @@
                     <textarea data-template>
                         ## Quiz
 
-                        You want to check if GPT-4 was trained on the MMLU test set. You only have API access (no model weights). Which method can you use?
+                        You want to check if a model was trained on the MMLU test set. You only have API access (no model weights). Which method can you use?
 
-                        - A) Min-k-prob, because it only needs token probabilities
-                        - B) Exchangeability test, because it only needs sequence probabilities
-                        - C) Both, because both only require querying the model
+                        - A) Only Min-k-prob
+                        - B) Only the exchangeability test
+                        - C) Both Min-k-prob and the exchangeability test
                         - D) Neither, because both require access to model weights
                     </textarea>
                 </section>
@@ -428,11 +433,11 @@
                     <textarea data-template>
                         ## Quiz: Answer
 
-                        **B) Exchangeability test, because it only needs sequence probabilities**
+                        **C) Both Min-k-prob and the exchangeability test**
 
-                        - Min-k-prob requires **per-token probabilities**, which most commercial APIs do not expose (GPT-4's API returns limited or no logprobs for all tokens in the vocabulary)
-                        - The exchangeability test only needs the model to score **whole sequences**, which can be done through the API by comparing log-probabilities of different orderings
-                        - This is why Oren et al. frame their method as working for "black box" models
+                        - Min-k-prob needs per-token probabilities of the actual tokens in the text. Most APIs expose this via the `logprobs` parameter.
+                        - The exchangeability test needs to compare log-probabilities of different orderings of examples, which can also be done through the API.
+                        - Neither method requires access to model weights. Both work with black-box API access.
                     </textarea>
                 </section>
 
