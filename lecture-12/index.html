@@ -41,25 +41,37 @@
                 </textarea>
             </section>
 
-            <section data-markdown>
-                <textarea data-template>
-                    ## Lecture Outline
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Logistics
 
-                    1. Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)
-                    2. The Benchmark Crisis (explosion, saturation, contamination, gaming)
-                    3. Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)
-                </textarea>
+                        * [Project](https://docs.google.com/spreadsheets/d/1gMsgMXXWlo4jfq7qCSumu-0HmY2TKxN0hWFiBwkZpQE/edit?gid=0#gid=0)
+                            - mentors have been assigned
+                            - a new run for all projects have been done, check it out, please form the repo if you plan to use part of the code
+                        * [Feedback form](https://forms.gle/uSRgFc21m9xcoYhh9)
+                    </textarea>
+                </section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Lecture Outline
+
+                        * Evaluation Basics 
+                        * The Benchmark Crisis 
+                        * Modern Evaluation
+                    </textarea>
+                </section>
             </section>
 
             <!-- Part 1: Evaluation Basics -->
             <section>
                 <section>
                     <h2>Lecture Outline</h2>
-                    <ol>
-                        <li><strong>Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</strong></li>
-                        <li style="color: #ccc;">The Benchmark Crisis (explosion, saturation, contamination, gaming)</li>
-                        <li style="color: #ccc;">Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</li>
-                    </ol>
+                    <ul>
+                        <li><strong>Evaluation Basics</strong></li>
+                        <li style="color: #ccc;">The Benchmark Crisis</li>
+                        <li style="color: #ccc;">Modern Evaluation</li>
+                    </ul>
                 </section>
 
                 <section data-markdown>
@@ -81,6 +93,38 @@
 
                 <section data-markdown>
                     <textarea data-template>
+                        ## Close-ended Evaluation
+
+                        **Confusion matrix** (binary classification):
+
+                        |  | Predicted Positive | Predicted Negative |
+                        |--|--------------------|--------------------|
+                        | **Actual Positive** | TP = 40 | FN = 10 |
+                        | **Actual Negative** | FP = 5 | TN = 45 |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Metrics from the Confusion Matrix
+
+                        |  | Pred Positive | Pred Negative |
+                        |--|---------------|---------------|
+                        | **Actual Positive** | TP = 40 | FN = 10 |
+                        | **Actual Negative** | FP = 5 | TN = 45 |
+
+                        **Accuracy** = $\frac{TP + TN}{TP + TN + FP + FN} = \frac{40 + 45}{100} = 0.85$
+
+                        **Precision** = $\frac{TP}{TP + FP} = \frac{40}{40 + 5} = 0.89$ &nbsp; (of those we predicted positive, how many are correct?)
+
+                        **Recall** = $\frac{TP}{TP + FN} = \frac{40}{40 + 10} = 0.80$ &nbsp; (of the actual positives, how many did we find?)
+
+                        **F1** = $\frac{2 \cdot P \cdot R}{P + R} = \frac{2 \cdot 0.89 \cdot 0.80}{0.89 + 0.80} = 0.84$ &nbsp; (harmonic mean of precision and recall)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
                         ## Open-ended Evaluation
 
                         Tasks with many valid outputs (translation, summarization, dialogue, ...)
@@ -90,7 +134,7 @@
                         $$\text{ROUGE-N} = \frac{|\text{n-grams in ref} \cap \text{n-grams in cand}|}{|\text{n-grams in ref}|}$$
 
                         - $N$: n-gram size (ROUGE-1 = unigrams, ROUGE-2 = bigrams)
-                        - Numerator: number of n-grams that appear in **both** reference and candidate
+                        - Numerator: number of n-grams that appear in both reference and candidate
                         - Denominator: total number of n-grams in the reference
                     </textarea>
                 </section>
@@ -126,7 +170,7 @@
 
                         **BERTScore** addresses this by using contextual embeddings and cosine similarity instead of exact matching.
 
-                        <p class="citation">BERTScore: Evaluating Text Generation with BERT. Zhang et al. (2020)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/1904.09675">BERTScore: Evaluating Text Generation with BERT. Zhang et al. (2020)</a></p>
                     </textarea>
                 </section>
 
@@ -157,10 +201,11 @@
                         The "gold standard" for text generation, but:
 
                         - Slow and expensive
-                        - Not reproducible: "Only 5% of human evaluations are repeatable" (Belz et al., 2023)
+                        - Not repeatable: "Only 5% of human evaluations are repeatable"
                         - Inter-annotator and intra-annotator disagreement
                         - Biases and shortcuts when incentives are misaligned
 
+                        <p class="citation"><a href="https://aclanthology.org/2023.findings-acl.226/">Non-Repeatable Experiments and Non-Reproducible Results: The Reproducibility Crisis in Human Evaluation in NLP. Belz et al. (2023)</a></p>
                     </textarea>
                 </section>
 
@@ -179,7 +224,7 @@
 
                         The most widely trusted LLM ranking today.
 
-                        <p class="citation">Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference. Zheng et al. (2024)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2403.04132">Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference. Chiang et al. (2024)</a></p>
                     </textarea>
                 </section>
 
@@ -198,7 +243,7 @@
 
                         **Limitations**: Length bias (prefers longer outputs), position bias (prefers the first response), self-bias (models prefer their own outputs)
 
-                        <p class="citation">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. Zheng et al. (2023)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2306.05685">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. Zheng et al. (2023)</a></p>
                     </textarea>
                 </section>
             </section>
@@ -207,11 +252,11 @@
             <section>
                 <section>
                     <h2>Lecture Outline</h2>
-                    <ol>
-                        <li style="color: #ccc;">Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</li>
-                        <li><strong>The Benchmark Crisis (explosion, saturation, contamination, gaming)</strong></li>
-                        <li style="color: #ccc;">Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</li>
-                    </ol>
+                    <ul>
+                        <li style="color: #ccc;">Evaluation Basics</li>
+                        <li><strong>The Benchmark Crisis</strong></li>
+                        <li style="color: #ccc;">Modern Evaluation</li>
+                    </ul>
                 </section>
 
                 <section data-markdown>
@@ -276,24 +321,7 @@
                     </textarea>
                 </section>
 
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Benchmark Saturation
-
-                        Benchmarks expire faster than we can create them:
-
-                        | Benchmark | Year | Time to Saturate |
-                        |-----------|------|------------------|
-                        | MNIST | 1998 | ~20 years |
-                        | GLUE | 2018 | 1 year |
-                        | SuperGLUE | 2019 | ~2 years |
-                        | MMLU | 2021 | ~3 years |
-
-                        <img src="images/dynabench-saturation.png" alt="Benchmark saturation over time" style="max-height: 250px;">
-
-                        <p class="citation">Dynabench: Rethinking Benchmarking in NLP. Kiela et al. (2021)</p>
-                    </textarea>
-                </section>
+                
 
                 <section data-markdown>
                     <textarea data-template>
@@ -301,54 +329,7 @@
 
                         Models trained on the internet have likely seen test data.
 
-                        **Detection methods**:
-                        - **Min-k-prob**: Check if token probabilities are suspiciously high
-                        - **Exchangeability test**: Look for ordering signatures in training data
-
-                        No detection method currently works reliably. Closed models make verification even harder.
-
-                        <p class="citation">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</p>
-                    </textarea>
-                </section>
-
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Gaming the Metrics
-
-                        When a measure becomes a target, it ceases to be a good measure (Goodhart's Law).
-
-                        - Leaderboard pressure incentivizes benchmark-specific optimization
-                        - Models can be tuned to score well on benchmarks without real capability gains
-                        - Prompt formatting sensitivity: up to 76 accuracy points difference from subtle prompt changes
-
-                        <p class="citation">When Benchmarks are Targets: Revealing the Sensitivity of Large Language Model Leaderboards. Alzahrani et al. (2024)</p>
-                    </textarea>
-                </section>
-
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Quiz
-
-                        A model scores 92% on a benchmark. You paraphrase the test questions and the accuracy drops to 61%. What is the most likely explanation?
-
-                        - A) The model memorized the exact test examples during training
-                        - B) Paraphrasing changed the questions to be about different topics
-                        - C) The model relies on surface-level patterns that paraphrasing disrupts
-                        - D) The benchmark was too easy to begin with
-                    </textarea>
-                </section>
-
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Quiz: Answer
-
-                        **A) The model memorized the exact test examples during training**
-
-                        A large drop from paraphrasing is a strong signal of **data contamination**: the model memorized the exact test examples rather than learning the underlying task.
-
-                        If the model had genuinely learned the task, semantically equivalent paraphrases should yield similar accuracy.
-
-                        Why not C? Surface-level patterns (e.g., keyword matching) would cause some drop, but not 31 points. That scale of drop points to memorization, not shallow heuristics.
+                        
                     </textarea>
                 </section>
 
@@ -371,17 +352,131 @@
                         3. Why can't we just check whether the test data appears in the training set?
                     </textarea>
                 </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Data Contamination
+
+                        Models trained on the internet have likely seen test data.
+
+                        **Detection methods**:
+                        - **Min-k-prob**: Check if token probabilities are suspiciously high
+                        - **Exchangeability test**: Look for ordering signatures in training data
+
+                        No detection method currently works reliably. Closed models make verification even harder.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a>; <a href="https://arxiv.org/abs/2310.17623">Proving Test Set Contamination in Black Box Language Models. Oren et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Min-k-prob: Intuition
+
+                        If a model has **seen** a text during training, it will assign high probability to most tokens, even the unusual ones.
+
+                        **Key idea**: Look at the $k$% of tokens with the **lowest** probabilities. If even those have high probabilities, the model likely memorized the text.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Min-k-prob: Example
+
+                        "The capital of France is **Paris**."
+                        - A model that memorized this assigns high probability to every token
+                        - A model that has not seen it may still predict "Paris" but will be less confident on function words in this exact arrangement
+
+                        **Min-k-prob score** = average log-probability of the $k$% least-likely tokens. Higher score on test examples (compared to non-member examples) suggests contamination.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Exchangeability Test: Intuition
+
+                        Benchmark examples are often stored as **ordered lists** (e.g., Example 1, Example 2, ..., Example 100).
+
+                        If a model saw the benchmark in order during training, it will find the **original ordering** more likely than a random shuffle.
+
+                        **Key idea**: Compare the model's log-probability on the original order vs. random permutations of the same examples. A contaminated model will prefer the original order.
+
+                        **Limitation**: Only detects contamination when the benchmark was ingested in its original order (e.g., as a document or webpage).
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.17623">Proving Test Set Contamination in Black Box Language Models. Oren et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz
+
+                        You want to check if GPT-4 was trained on the MMLU test set. You only have API access (no model weights). Which method can you use?
+
+                        - A) Min-k-prob, because it only needs token probabilities
+                        - B) Exchangeability test, because it only needs sequence probabilities
+                        - C) Both, because both only require querying the model
+                        - D) Neither, because both require access to model weights
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **B) Exchangeability test, because it only needs sequence probabilities**
+
+                        - Min-k-prob requires **per-token probabilities**, which most commercial APIs do not expose (GPT-4's API returns limited or no logprobs for all tokens in the vocabulary)
+                        - The exchangeability test only needs the model to score **whole sequences**, which can be done through the API by comparing log-probabilities of different orderings
+                        - This is why Oren et al. frame their method as working for "black box" models
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Benchmark Saturation
+
+                        Benchmarks expire faster than we can create them:
+
+                        
+                        <img src="images/dynabench-saturation.png" alt="Benchmark saturation over time" style="max-width: 50%;">
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2104.14337">Dynabench: Rethinking Benchmarking in NLP. Kiela et al. (2021)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Gaming the Metrics
+
+                        When a measure becomes a target, it ceases to be a good measure (Goodhart's Law).
+
+                        - Leaderboard pressure incentivizes benchmark-specific optimization
+                        - Models can be tuned to score well on benchmarks without real capability gains
+                        - Prompt formatting sensitivity: up to 76 accuracy points difference from subtle prompt changes
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2402.01781">When Benchmarks are Targets: Revealing the Sensitivity of Large Language Model Leaderboards. Alzahrani et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                
+
+                
             </section>
 
             <!-- Part 3: Modern Evaluation -->
             <section>
                 <section>
                     <h2>Lecture Outline</h2>
-                    <ol>
-                        <li style="color: #ccc;">Evaluation Basics (close-ended, open-ended, human, LLM-as-a-Judge)</li>
-                        <li style="color: #ccc;">The Benchmark Crisis (explosion, saturation, contamination, gaming)</li>
-                        <li><strong>Modern Evaluation (agent benchmarks, SWE-bench, TerminalBench, METR)</strong></li>
-                    </ol>
+                    <ul style="list-style: none;">
+                        <li style="color: #ccc;">Evaluation Basics</li>
+                        <li style="color: #ccc;">The Benchmark Crisis</li>
+                        <li><strong>Modern Evaluation</strong></li>
+                    </ul>
                 </section>
 
                 <section data-markdown>
@@ -406,14 +501,12 @@
                         Real GitHub issues from popular Python repositories. The agent must produce a working patch.
 
                         **SWE-bench Verified** (500 human-validated issues):
-                        - Best: ~79% (Claude Opus 4.6 with scaffolding)
-                        - Rapid progress: 4% (2023) to 79% (2025)
+                        - Best: ~78.8% 
+                        - Rapid progress: 4% (2023) to ~79% (2025)
 
-                        **SWE-bench Pro** (harder variant):
-                        - Best: ~23%
-                        - Tests multi-file, complex reasoning tasks
+                        
 
-                        <p class="citation">SWE-bench: Can Language Models Resolve Real-World GitHub Issues? Jimenez et al. (2024)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.06770">SWE-bench: Can Language Models Resolve Real-World GitHub Issues? Jimenez et al. (2024)</a></p>
                     </textarea>
                 </section>
 
@@ -444,7 +537,7 @@
                         - Many tasks require multi-step reasoning and tool use
                         - Highlights gap between "knowing" and "doing"
 
-                        <p class="citation">TerminalBench: Benchmarking LLM Agents in Real Terminal Environments. Zhu et al. (2026)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2601.11868">TerminalBench: Benchmarking LLM Agents in Real Terminal Environments. Zhu et al. (2026)</a></p>
                     </textarea>
                 </section>
 
@@ -470,38 +563,28 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## WebArena + OSWorld
+                        ## OSWorld
 
-                        **WebArena**: Realistic web tasks (shopping, forum posting, map navigation)
-                        - Progress: 14% (2023) to ~62% (2025-2026)
-
+                        
                         **OSWorld**: 369 real computer tasks across Ubuntu/Windows/macOS
-                        - OSAgent reached 76%, above the 72% human baseline
+                        - The best agent now exceeds human performance slightly
                         - Tasks: file management, app usage, system configuration
 
                         Trend: agents are approaching (and sometimes exceeding) human performance on computer use tasks.
 
-                        <p class="citation">WebArena: A Realistic Web Environment for Building Autonomous Agents. Zhou et al. (2024); OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments. Xie et al. (2025)</p>
+                        <a href="https://arxiv.org/abs/2404.07972">OSWorld. Xie et al. (2025)</a></p>
                     </textarea>
                 </section>
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## WebArena: Example Task
+                        ## OSWorld: Example Task
 
-                        **Task**: "Tell me the name of the customer who has the most cancellations in the history."
+                        **Task**: "Could you help me extract data in the table from a new invoice uploaded to my Google Drive, then export it to a Libreoffice calc .xlsx file in the desktop?"
 
-                        The agent must navigate a realistic e-commerce admin panel (Magento-based):
+                        <iframe src="https://drive.google.com/file/d/1rcw53toCpRIYih_R5-bvgEEoDKSLGqHK/preview?t=19" width="640" height="360" allow="autoplay" allowfullscreen></iframe>
 
-                        1. Log into the admin dashboard
-                        2. Navigate to the orders/customers section
-                        3. Filter or sort by cancelled orders
-                        4. Identify the customer with the highest count
-                        5. Return the name
-
-                        Multi-step web navigation + reading tables + reasoning over data.
-
-                        [Browse WebArena tasks](https://github.com/web-arena-x/webarena)
+                        [Browse OSWorld tasks](https://os-world.github.io/explorer.html)
                     </textarea>
                 </section>
 
@@ -509,15 +592,12 @@
                     <textarea data-template>
                         ## METR Time Horizon
 
-                        METR measured the "50% task-completion time horizon": the task duration (for a human expert) at which AI succeeds 50% of the time.
+                        **50% time horizon**: the task duration (for a human expert) at which an AI agent succeeds 50% of the time.
 
-                        - This horizon has been **doubling every ~7 months**
-                        - Current: ~50-60 minutes (Claude 3.7 Sonnet)
-                        - Agents use 1.4-2.7x more steps than humans, even when successful
+                        Methodology: human experts attempt each task, completion times are averaged, then a logistic curve is fit to predict agent success as a function of task duration.
 
-                        **Implication**: If this trend continues, AI could automate tasks that take humans a full day within 1-2 years.
-
-                        <p class="citation">Measuring AI Ability to Complete Long Tasks. METR (2025)</p>
+                        
+                        <p class="citation"><a href="https://arxiv.org/abs/2503.14499">Measuring AI Ability to Complete Long Tasks. METR (2025)</a></p>
                     </textarea>
                 </section>
 
@@ -527,7 +607,36 @@
 
                         <img src="images/metr.png" alt="METR time horizon trend" style="max-height: 500px;">
 
-                        <p class="citation">Measuring AI Ability to Complete Long Tasks. METR (2025)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2503.14499">Measuring AI Ability to Complete Long Tasks. METR (2025)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## METR: Key Observations
+
+                        - AI agents complete tasks **several times faster** than humans when successful (they code much faster and take fewer actions)
+                        - Performance drops substantially when scoring **holistically** rather than algorithmically
+                        - Tasks are primarily in software engineering, ML, and cybersecurity
+                        - Human baselines use skilled contractors (~5 years experience, top-100 universities) with **low context** (like a new hire)
+
+                        <p class="citation"><a href="https://metr.org/time-horizons/">metr.org/time-horizons</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## METR: Limitations
+
+                        **Time horizon does NOT mean autonomous work duration.** It measures task difficulty (how long a human takes), not how long the agent runs.
+
+                        **Domain-specific.** Tasks cover software/ML/cybersecurity only. AI capabilities are "jagged" relative to humans and vary across domains.
+
+                        **Tasks are cleaner than real work.** They are well-specified and algorithmically scored. Real jobs involve interacting with people, ambiguous requirements, and success metrics that cannot be automatically checked.
+
+                        **Human baselines may overestimate difficulty.** Contractors have low context (like a new hire), not the familiarity of someone who works on that codebase daily.
+
+                        An "8-hour time horizon" does not mean AI can do an 8-hour job.
                     </textarea>
                 </section>
 
@@ -535,12 +644,9 @@
                     <textarea data-template>
                         ## Discussion: What Does the METR Trend Mean?
 
-                        The 50% time horizon is doubling every ~7 months.
-
                         Discuss with your neighbor:
-                        1. If AI can currently handle ~1-hour tasks, what does this mean in 3 years?
-                        2. What types of tasks will remain hard even if the time horizon keeps growing?
-                        3. Is task duration even the right way to measure AI capability? What does it miss?
+                        * What types of tasks will remain hard even if the time horizon keeps growing?
+                        * Is task duration even the right way to measure AI capability? What does it miss?
                     </textarea>
                 </section>
             </section>
