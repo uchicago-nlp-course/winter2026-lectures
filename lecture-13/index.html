@@ -50,7 +50,7 @@
                     * Lecture maintenance
                     * Perplexity notebook
                     * Post-training recipe
-                    * Preference optimization
+                    * Reward optimization
                     * Direct Preference Optimization (DPO)
                     * Proximal Policy Optimization (PPO)
                     * Group Relative Policy Optimization (GRPO)
@@ -136,7 +136,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li><strong>Perplexity notebook</strong></li>
                         <li style="color: #ccc;">Post-training recipe</li>
-                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Reward optimization</li>
                         <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
                         <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
                         <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
@@ -152,7 +152,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li style="color: #ccc;">Perplexity notebook</li>
                         <li><strong>Post-training recipe</strong></li>
-                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Reward optimization</li>
                         <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
                         <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
                         <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
@@ -216,7 +216,7 @@
                         - **Self-instruct**: the model generates its own instruction-response pairs, filtered for quality
 
                         
-                        <p class="citation">Ouyang et al. (2022); Taori et al. (2023); Wang et al. (2023)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2203.02155">Ouyang et al. (2022)</a>; <a href="https://arxiv.org/abs/2304.03277">Taori et al. (2023)</a>; <a href="https://arxiv.org/abs/2212.10560">Wang et al. (2023)</a></p>
                     </textarea>
                 </section>
 
@@ -282,16 +282,28 @@
                         **Step 1**: Instruction Finetuning (SFT)
                         - Teaches format and instruction following
 
-                        **Step 2**: Preference Optimization
+                        **Step 2**: Reward Optimization
                         - Optimizes a response-level objective
                         - Learns from the model's own outputs (online methods)
                         - Multiple approaches: RLHF (PPO), DPO, GRPO, ...
 
                         Most production LLMs follow this two-step recipe.
 
-                        <p class="citation">Ouyang et al. (2022); Touvron et al. (2023)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/2203.02155">Ouyang et al. (2022)</a>; <a href="https://arxiv.org/abs/2307.09288">Touvron et al. (2023)</a></p>
                     </textarea>
                 </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Reality Is More Complicated
+
+                        <img src="images/deepseek.png" style="max-height: 500px;">
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI (2025)</a></p>
+                    </textarea>
+                </section>
+
+
             </section>
 
             <!-- Rewards -->
@@ -302,7 +314,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li style="color: #ccc;">Perplexity notebook</li>
                         <li style="color: #ccc;">Post-training recipe</li>
-                        <li><strong>Preference optimization</strong></li>
+                        <li><strong>Reward optimization</strong></li>
                         <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
                         <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
                         <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
@@ -311,7 +323,7 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## From Imitation to Preference Optimization
+                        ## From Imitation to Reward Optimization
 
                         **SFT** says: "here is a good response, make it more likely."
 
@@ -459,7 +471,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li style="color: #ccc;">Perplexity notebook</li>
                         <li style="color: #ccc;">Post-training recipe</li>
-                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Reward optimization</li>
                         <li><strong>Direct Preference Optimization (DPO)</strong></li>
                         <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
                         <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
@@ -468,9 +480,9 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## The Preference Optimization Zoo
+                        ## The Reward Optimization Zoo
 
-                        There are many algorithms for preference optimization: **PPO** (Schulman et al., 2017), **DPO** (Rafailov et al., 2024), **IPO** (Azar et al., 2024), **KTO** (Ethayarajh et al., 2024), **GRPO** (Shao et al., 2024), **REINFORCE Leave-One-Out** (Ahmadian et al., 2024), SimPO, ORPO, and many more.
+                        There are many algorithms for reward optimization: **PPO** (Schulman et al., 2017), **DPO** (Rafailov et al., 2024), **IPO** (Azar et al., 2024), **KTO** (Ethayarajh et al., 2024), **GRPO** (Shao et al., 2024), **REINFORCE Leave-One-Out** (Ahmadian et al., 2024), SimPO, ORPO, and many more.
 
                         We will focus on three: **DPO**, **PPO** (Proximal Policy Optimization), and **GRPO** (Group Relative Policy Optimization).
 
@@ -484,7 +496,7 @@
 
                         <div style="font-size: 0.9em;">
 
-                        The preference optimization objective:
+                        The reward optimization objective:
 
                         $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
 
@@ -561,7 +573,7 @@
 
                         This is the standard loss for training reward models in RLHF. DPO will use this same preference model but eliminate $RM\_\phi$ entirely.
 
-                        <p class="citation">Bradley and Terry (1952)</p>
+                        <p class="citation"><a href="https://doi.org/10.2307/2334029">Bradley and Terry (1952)</a></p>
 
                         </div>
                     </textarea>
@@ -721,7 +733,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li style="color: #ccc;">Perplexity notebook</li>
                         <li style="color: #ccc;">Post-training recipe</li>
-                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Reward optimization</li>
                         <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
                         <li><strong>Proximal Policy Optimization (PPO)</strong></li>
                         <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
@@ -745,7 +757,7 @@
 
                         Sample responses, compute rewards, increase probability of high-reward responses.
 
-                        <p class="citation">Williams (1992)</p>
+                        <p class="citation"><a href="https://link.springer.com/article/10.1007/BF00992696">Williams (1992)</a></p>
                     </textarea>
                 </section>
 
@@ -777,7 +789,17 @@
 
                         **Setup**: We have a trained reward model $RM\_\phi$ and want to optimize the policy $p\_\theta$.
 
-                        <p class="citation">Schulman et al. (2017); Ouyang et al. (2022)</p>
+                        <p class="citation"><a href="https://arxiv.org/abs/1707.06347">Schulman et al. (2017)</a>; <a href="https://arxiv.org/abs/2203.02155">Ouyang et al. (2022)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Overview
+
+                        <img src="images/rlhf.png" style="max-height: 500px;">
+
+                        <p class="citation">Ouyang et al. (2022)</p>
                     </textarea>
                 </section>
 
@@ -824,17 +846,19 @@
                     <textarea data-template>
                         ## Reward Model vs. Value Function
 
+                        <div style="font-size: 0.9em;">
+
                         They serve different roles in PPO:
 
                         **Reward Model** $RM\_\phi(x, y)$: scores a **complete** response. Trained on human preferences. Fixed during PPO training. Provides the learning signal.
 
-                        **Value Function** $V(s\_t)$: predicts the **expected reward** the current policy will achieve from state $s\_t$ (prompt + partial response so far). Trained alongside the policy. Serves as a baseline for variance reduction.
+                        **Value Function** $V(s\_t)$: predicts the **expected reward** the current policy will achieve from state $s\_t$ (prompt + tokens generated so far). Serves as a baseline for variance reduction. Updated during training.
 
-                        The reward model answers: "how good is this response?"
+                        In practice, the value function is typically implemented as the **policy model with a scalar head** (one extra linear layer), not a fully separate model.
 
-                        The value function answers: "how good do we expect the response to be, given what has been generated so far?"
+                        This is also why PPO is expensive: it needs to keep the policy, reference model, reward model, and value head all in memory. GRPO removes the value function entirely.
 
-                        This is why PPO requires **4 models**: policy $p\_\theta$, reference $p\_{\text{ref}}$, reward model $RM\_\phi$, and value function $V$.
+                        </div>
                     </textarea>
                 </section>
 
@@ -937,7 +961,7 @@
                         <li style="color: #ccc;">Lecture maintenance</li>
                         <li style="color: #ccc;">Perplexity notebook</li>
                         <li style="color: #ccc;">Post-training recipe</li>
-                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Reward optimization</li>
                         <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
                         <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
                         <li><strong>Group Relative Policy Optimization (GRPO)</strong></li>
@@ -1087,7 +1111,7 @@
                     <textarea data-template>
                         ## Key Takeaways
 
-                        1. **Post-training** transforms a base LM into a useful assistant via SFT + preference optimization
+                        1. **Post-training** transforms a base LM into a useful assistant via SFT + reward optimization
                         2. **SFT** teaches format but is bounded by demonstrations and optimizes at the token level
                         3. **Rewards** can come from humans (RLHF), automatic checkers (RLVR), or AI judges (RLAIF)
                         4. **DPO** skips the reward model by deriving a closed-form supervised loss from preference data
@@ -1096,17 +1120,7 @@
                     </textarea>
                 </section>
 
-                <section data-markdown>
-                    <textarea data-template>
-                        ## Reading
-
-                        - Ouyang et al. (2022): [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155)
-                        - Rafailov et al. (2024): [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
-                        - Schulman et al. (2017): [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
-                        - Shao et al. (2024): [DeepSeekMath: Pushing the Limits of Mathematical Reasoning](https://arxiv.org/abs/2402.03300)
-                        - DeepSeek-AI (2025): [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
-                    </textarea>
-                </section>
+            
 
                 <section data-markdown>
                     <textarea data-template>
