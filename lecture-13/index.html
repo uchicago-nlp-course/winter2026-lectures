@@ -410,9 +410,7 @@
 
                         RLVR removes the reward model entirely. The reward comes from the task itself.
 
-                        This is how DeepSeek-R1 was trained: the model solves math problems, and the reward is simply whether the answer is correct.
-
-                        No human preferences, no learned reward model, just a binary signal: right or wrong.
+                        This is an important component in DeepSeek-R1.
 
                         The simplicity of the reward enabled the model to develop its own reasoning strategies (chain of thought, backtracking) through exploration.
 
@@ -435,7 +433,7 @@
 
                         $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
 
-                        Verifiable rewards do not suffer from reward hacking (the checker is exact).
+                        
                     </textarea>
                 </section>
 
@@ -446,9 +444,9 @@
                         A reward model trained on human preferences tends to give higher scores to longer responses. After RL training, the model produces very long, repetitive responses. What is the most likely cause?
 
                         - A) The KL penalty $\beta$ is too large
-                        - B) The model is reward hacking by exploiting the length bias in the reward model
-                        - C) The SFT training data contained long responses
-                        - D) The model has too few parameters
+                        - B) The SFT training data contained long responses
+                        - C) The model has too few parameters
+                        - D) The model is reward hacking by exploiting the length bias in the reward model
                     </textarea>
                 </section>
 
@@ -456,7 +454,7 @@
                     <textarea data-template>
                         ## Quiz: Answer
 
-                        **B) The model is reward hacking by exploiting the length bias in the reward model**
+                        **D) The model is reward hacking by exploiting the length bias in the reward model**
 
                         The policy found that producing longer outputs reliably increases the reward model's score, even if the extra content is low quality. This is a classic example of reward hacking. Increasing $\beta$ (the KL penalty) or improving the reward model can help mitigate this.
                     </textarea>
@@ -498,7 +496,7 @@
 
                         The reward optimization objective:
 
-                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \cdot \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
 
                         This is hard because:
 
@@ -549,7 +547,21 @@
 
                         $$RM(x, y) = \beta \log \frac{p^*(y|x)}{p\_{\text{ref}}(y|x)} + \beta \log Z(x)$$
 
-                        The reward is fully determined by the policy and the reference model. The policy **is** the reward model. No need for a separate one.
+                        The reward is fully determined by the policy and the reference model. No need for a separate reward model.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2305.18290">Rafailov et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: From Insight to Loss
+
+                        We know the reward can be written as: $RM(x, y) = \beta \log \frac{p^*(y|x)}{p\_{\text{ref}}(y|x)} + \beta \log Z(x)$
+
+                        But how do we turn this into a training loss? We need a way to compare responses.
+
+                        Since we have **pairwise preference data** $(y\_w, y\_l)$, we can use the **Bradley-Terry model** to define a loss over pairs.
 
                         <p class="citation"><a href="https://arxiv.org/abs/2305.18290">Rafailov et al. (2024)</a></p>
                     </textarea>
@@ -561,17 +573,15 @@
 
                         <div style="font-size: 0.9em;">
 
-                        How do we model pairwise preferences mathematically?
-
-                        Given a winning response $y\_w$ and a losing response $y\_l$, the probability that $y\_w$ is preferred:
+                        Given a winning response $y\_w$ and a losing response $y\_l$, the Bradley-Terry model defines the probability that $y\_w$ is preferred:
 
                         $$P(y\_w \succ y\_l | x) = \sigma(RM(x, y\_w) - RM(x, y\_l))$$
 
-                        where $\sigma$ is the sigmoid function. The reward model is trained to maximize:
+                        where $\sigma$ is the sigmoid function. The maximum likelihood loss over preference data is:
 
-                        $$\mathcal{L}\_{RM}(\phi) = -\mathbb{E}\_{(x, y\_w, y\_l) \sim D}[\log \sigma(RM\_\phi(x, y\_w) - RM\_\phi(x, y\_l))]$$
+                        $$\mathcal{L} = -\mathbb{E}\_{(x, y\_w, y\_l) \sim D}[\log \sigma(RM(x, y\_w) - RM(x, y\_l))]$$
 
-                        This is the standard loss for training reward models in RLHF. DPO will use this same preference model but eliminate $RM\_\phi$ entirely.
+                        DPO will substitute the closed-form reward expression into this loss, replacing $RM$ with the policy itself.
 
                         <p class="citation"><a href="https://doi.org/10.2307/2334029">Bradley and Terry (1952)</a></p>
 
@@ -742,7 +752,7 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## RL Basics: Policy Gradient
+                        ## RL Basics: Setup
 
                         In reinforcement learning, an **agent** takes **actions** in an environment and receives **rewards**.
 
@@ -753,9 +763,44 @@
 
                         The goal is to maximize expected reward: $\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}[R(x, y)]$
 
-                        **Policy gradient** (REINFORCE): $\nabla\_\theta J = \mathbb{E}\_{y \sim p\_\theta}[R(x,y) \nabla\_\theta \log p\_\theta(y|x)]$
+                        But we cannot backpropagate through sampling (discrete tokens). How do we compute gradients?
+                    </textarea>
+                </section>
 
-                        Sample responses, compute rewards, increase probability of high-reward responses.
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RL Basics: Policy Gradient Intuition
+
+                        <div style="font-size: 0.9em;">
+
+                        Idea: **trial and error**. Generate responses, see which ones get high reward, make those more likely.
+
+                        1. Sample a response $y \sim p\_\theta(y|x)$
+                        2. Compute its reward $R(x, y)$
+                        3. If $R$ is high: increase $p\_\theta(y|x)$
+                        4. If $R$ is low: decrease $p\_\theta(y|x)$
+
+                        How much to increase/decrease? Use $\nabla\_\theta \log p\_\theta(y|x)$, the direction that makes $y$ more likely.
+
+                        Scale it by the reward: $R(x,y) \cdot \nabla\_\theta \log p\_\theta(y|x)$
+
+                        High reward $\rightarrow$ large step toward $y$. Low reward $\rightarrow$ small step (or step away if negative).
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RL Basics: REINFORCE
+
+                        This gives us the **policy gradient** (REINFORCE):
+
+                        $$\nabla\_\theta J = \mathbb{E}\_{y \sim p\_\theta}[R(x,y) \cdot \nabla\_\theta \log p\_\theta(y|x)]$$
+
+                        In practice, we estimate this with Monte Carlo samples: generate $N$ responses, compute rewards, average the gradients.
+
+                        No need to differentiate through the reward or through sampling. We only need $\nabla\_\theta \log p\_\theta(y|x)$, which the LM already computes.
 
                         <p class="citation"><a href="https://link.springer.com/article/10.1007/BF00992696">Williams (1992)</a></p>
                     </textarea>
@@ -805,23 +850,18 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## PPO: Objective Function
+                        ## PPO: Algorithm
 
-                        <div style="font-size: 0.9em;">
+                        **Input**: reward model $RM\_\phi$, reference model $p\_{\text{ref}}$, prompts $D$
 
-                        The RLHF objective with KL penalty:
+                        Repeat:
+                        1. **Sample**: generate responses $y \sim p\_\theta(y|x)$ for a batch of prompts
+                        2. **Score**: compute rewards $RM\_\phi(x, y) - \beta \cdot \text{KL}(p\_\theta \| p\_{\text{ref}})$
+                        3. **Estimate advantages**: using the value function $V$
+                        4. **Update**: take gradient steps on the clipped surrogate objective
+                        5. **Update value function**: fit $V$ to the observed returns
 
-                        $$\max\_\theta \; \mathbb{E}\_{x \sim D, \, y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta \| p\_{\text{ref}}\right)\right]$$
-
-                        PPO maximizes a **clipped surrogate objective** to take stable gradient steps:
-
-                        $$\mathcal{L}\_{\text{PPO}}(\theta) = \mathbb{E}\_t\left[\min\left(r\_t(\theta) \hat{A}\_t, \; \text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}\_t\right)\right]$$
-
-                        where $r\_t(\theta) = \frac{p\_\theta(y\_t | x, y\_{\lt t})}{p\_{\theta\_{\text{old}}}(y\_t | x, y\_{\lt t})}$ is the probability ratio and $\hat{A}\_t$ is the advantage estimate.
-
-                        <p class="citation"><a href="https://arxiv.org/abs/1707.06347">Schulman et al. (2017)</a></p>
-
-                        </div>
+                        
                     </textarea>
                 </section>
 
@@ -839,6 +879,8 @@
                         Positive advantage: this action was better than expected. Increase its probability.
 
                         Negative advantage: this action was worse than expected. Decrease its probability.
+
+                        *Note*: this is a simplification. The subscript $t$ indexes token positions. The reward $R$ is only given for the complete response (at the last token). Per-token advantages are computed by propagating this final reward backward using the value function.
                     </textarea>
                 </section>
 
@@ -864,19 +906,73 @@
 
                 <section data-markdown>
                     <textarea data-template>
-                        ## PPO: Why Clipping?
+                        ## PPO: Surrogate Objective
 
-                        Without clipping, a single update could change the policy drastically.
+                        <div style="font-size: 0.9em;">
 
-                        The clip function limits the probability ratio:
+                        REINFORCE updates the policy using: $\mathcal{L}(\theta) = \mathbb{E}\_t\left[\hat{A}\_t \log p\_\theta(y\_t|x)\right]$
 
-                        $$\text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon)$$
+                        Problem: we sample from $p\_{\theta\_{\text{old}}}$ but update $p\_\theta$. Use importance sampling:
 
-                        If $r\_t > 1 + \epsilon$: the token became too much more likely. Clip it.
+                        $$\mathcal{L}(\theta) = \mathbb{E}\_t\left[\frac{p\_\theta(y\_t|x)}{p\_{\theta\_{\text{old}}}(y\_t|x)} \hat{A}\_t\right] = \mathbb{E}\_t\left[r\_t(\theta) \cdot \hat{A}\_t\right]$$
 
-                        If $r\_t \lt 1 - \epsilon$: the token became too much less likely. Clip it.
+                        where $r\_t(\theta) = \frac{p\_\theta(y\_t | x, y\_{\lt t})}{p\_{\theta\_{\text{old}}}(y\_t | x, y\_{\lt t})}$ is the probability ratio.
 
-                        The $\min$ with the unclipped term ensures we only clip when it would make the objective **worse**. This produces conservative, stable updates.
+                        If $\hat{A}\_t > 0$: maximize $r\_t$ (make this token more likely).
+
+                        If $\hat{A}\_t < 0$: minimize $r\_t$ (make this token less likely).
+
+                        But what if $r\_t$ becomes very large? The policy changes too much and training collapses.
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Clipped Objective
+
+                        <div style="font-size: 0.9em;">
+
+                        PPO clips the surrogate objective to prevent large updates:
+
+                        $$\mathcal{L}\_{\text{PPO}}(\theta) = \mathbb{E}\_t\left[\min\left(r\_t(\theta) \hat{A}\_t, \; \text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}\_t\right)\right]$$
+
+                        **Example** ($\epsilon = 0.2$, $\hat{A}\_t = +1$, good token):
+
+                        | $r\_t$ | unclipped $r\_t \hat{A}\_t$ | clipped | $\min$ |
+                        |--------|---------------------------|---------|--------|
+                        | 0.5 | 0.5 | 0.8 | **0.5** (keep: still learning) |
+                        | 1.5 | 1.5 | 1.2 | **1.2** (clip: too greedy) |
+
+                        The $\min$ lets the policy recover when $r\_t$ is too low, but caps the gain when $r\_t$ is too high. This keeps each update close to the old policy.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/1707.06347">Schulman et al. (2017)</a></p>
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Clipped Objective
+
+                        <div style="font-size: 0.9em;">
+
+                        $$\mathcal{L}\_{\text{PPO}}(\theta) = \mathbb{E}\_t\left[\min\left(r\_t(\theta) \hat{A}\_t, \; \text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}\_t\right)\right]$$
+
+                        **Example** ($\epsilon = 0.2$, $\hat{A}\_t = -1$, bad token):
+
+                        | $r\_t$ | unclipped $r\_t \hat{A}\_t$ | clipped | $\min$ |
+                        |--------|---------------------------|---------|--------|
+                        | 0.5 | -0.5 | -0.8 | **-0.8** (zero gradient: already suppressed) |
+                        | 1.5 | -1.5 | -1.2 | **-1.5** (gradient flows: still too likely) |
+
+                        At $r\_t = 0.5$: the token is already half as likely. The $\min$ picks the clipped term, which has no gradient. The policy stops pushing this token down further.
+
+                        At $r\_t = 1.5$: the token is still too likely. The $\min$ picks the unclipped term, and the gradient keeps suppressing it.
+
+                        </div>
                     </textarea>
                 </section>
 
@@ -888,7 +984,7 @@
 
                         Repeat:
                         1. **Sample**: generate responses $y \sim p\_\theta(y|x)$ for a batch of prompts
-                        2. **Score**: compute rewards $RM\_\phi(x, y) - \beta \, \text{KL}(p\_\theta \| p\_{\text{ref}})$
+                        2. **Score**: compute rewards $RM\_\phi(x, y) - \beta \cdot \text{KL}(p\_\theta \| p\_{\text{ref}})$
                         3. **Estimate advantages**: using the value function $V$
                         4. **Update**: take gradient steps on the clipped surrogate objective
                         5. **Update value function**: fit $V$ to the observed returns
@@ -936,8 +1032,8 @@
                         In PPO, what happens if we set the clipping range $\epsilon = \infty$ (i.e., no clipping)?
 
                         - A) PPO becomes equivalent to DPO
-                        - B) The policy updates become unconstrained and can change drastically in a single step
-                        - C) The value function is no longer needed
+                        - B) The value function is no longer needed
+                        - C) The policy updates become unconstrained and can change drastically in a single step
                         - D) The reward model becomes unnecessary
                     </textarea>
                 </section>
@@ -946,7 +1042,7 @@
                     <textarea data-template>
                         ## Quiz: Answer
 
-                        **B) The policy updates become unconstrained and can change drastically in a single step**
+                        **C) The policy updates become unconstrained and can change drastically in a single step**
 
                         Without clipping, PPO reduces to standard policy gradient (REINFORCE with baseline). The clipping is what makes PPO "proximal": it keeps each update close to the previous policy. Large unconstrained updates often lead to training collapse.
                     </textarea>
@@ -990,7 +1086,7 @@
 
                         For each prompt $x$, sample a group of $G$ responses $\\{y\_1, \ldots, y\_G\\} \sim p\_{\theta\_{\text{old}}}(y|x)$.
 
-                        $$\mathcal{L}\_{\text{GRPO}}(\theta) = \mathbb{E}\_{x \sim D} \left[\frac{1}{G} \sum\_{i=1}^{G} \min\left(r\_i(\theta) \hat{A}\_i, \; \text{clip}(r\_i(\theta), 1-\epsilon, 1+\epsilon) \hat{A}\_i\right) - \beta \, \text{KL}(p\_\theta \| p\_{\text{ref}})\right]$$
+                        $\mathcal{L}\_{\text{GRPO}}(\theta) = \mathbb{E}\_{x \sim D} \left[\frac{1}{G} \sum\_{i=1}^{G} \min\left(r\_i(\theta) \hat{A}\_i, \; \text{clip}(r\_i(\theta), 1-\epsilon, 1+\epsilon) \hat{A}\_i\right) - \beta \cdot \text{KL}(p\_\theta \| p\_{\text{ref}})\right]$
 
                         where $r\_i(\theta) = \frac{p\_\theta(y\_i|x)}{p\_{\theta\_{\text{old}}}(y\_i|x)}$ and the advantage is:
 
