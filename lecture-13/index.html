@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 13: Post-training | CMSC 25700/35100 NLP</title>
+    <meta name="description" content="Post-training in Natural Language Processing. Topics include instruction finetuning, RLHF, reward modeling, DPO, PPO, and GRPO.">
+    <meta name="author" content="Chenhao Tan">
+    <meta name="keywords" content="NLP, Natural Language Processing, Post-training, RLHF, DPO, PPO, GRPO, Reward Model, University of Chicago">
+    <meta property="og:title" content="Lecture 13: Post-training | CMSC 25700/35100 NLP">
+    <meta property="og:description" content="Post-training in Natural Language Processing at University of Chicago.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="../assets/css/uchicago-theme.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title -->
+            <section data-markdown>
+                <textarea data-template>
+                    # CMSC 25700/35100:
+                    ## Natural Language Processing
+
+                    ## Lecture 13: Post-training
+
+                    <p style="text-align: center;">
+                    <strong>Chenhao Tan</strong><br/>
+                    University of Chicago<br/>
+                    @ChenhaoTan, @chenhaotan.bsky.social<br/>
+                    chenhao@uchicago.edu
+                    </p>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/1">Submit
+                    Music Recommendations</a>, kudos to Mina Lee <br>
+                    <a
+                    href="https://github.com/uchicago-nlp-course/winter-2025-students/issues/2">Submit
+                    jokes</a>
+                    </p>
+                </textarea>
+            </section>
+
+            <!-- Lecture Maintenance -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                    ## Lecture Outline
+
+                    * Lecture maintenance
+                    * Perplexity notebook
+                    * Post-training recipe
+                    * Preference optimization
+                    * Direct Preference Optimization (DPO)
+                    * Proximal Policy Optimization (PPO)
+                    * Group Relative Policy Optimization (GRPO)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Min-k-prob: Intuition
+
+                        If a model has **seen** a text during training, it will assign high probability to most tokens, even the unusual ones.
+
+                        **Key idea**: Look at the $k$% of tokens with the **lowest** probabilities. If even those have high probabilities, the model likely memorized the text.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Min-k-prob: How to Decide
+
+                        Min-k-prob score alone is meaningless. You need a **comparison**:
+
+                        1. Compute min-k-prob on **suspected data** (e.g., benchmark test examples)
+                        2. Compute min-k-prob on **reference data** (non-member text of similar style/domain)
+                        3. If the suspected data has significantly higher scores, it suggests contamination
+
+                        Example: compute min-k-prob on MMLU questions vs. newly written questions in the same format. If MMLU scores are much higher, the model likely saw MMLU during training.
+
+                        This is a **membership inference** problem: "is this specific text in the training set?"
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.16789">Detecting Pretraining Data from Large Language Models. Shi et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Exchangeability Test: Intuition
+
+                        Benchmark examples are often stored as **ordered lists** (e.g., Example 1, Example 2, ..., Example 100).
+
+                        If a model saw the benchmark in order during training, it will find the **original ordering** more likely than a random shuffle.
+
+                        **Key idea**: Compare the model's log-probability on the original order vs. random permutations of the same examples. A contaminated model will prefer the original order.
+
+                        **Limitation**: Only detects contamination when the benchmark was ingested in its original order (e.g., as a document or webpage).
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2310.17623">Proving Test Set Contamination in Black Box Language Models. Oren et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz
+
+                        You want to check if a model was trained on the MMLU test set. You only have API access (no model weights). Which method can you use?
+
+                        - A) Only Min-k-prob
+                        - B) Only the exchangeability test
+                        - C) Both Min-k-prob and the exchangeability test
+                        - D) Neither, because both require access to model weights
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **C) Both Min-k-prob and the exchangeability test**
+
+                        - Min-k-prob needs per-token probabilities of the actual tokens in the text. Most APIs expose this via the `logprobs` parameter.
+                        - The exchangeability test needs to compare log-probabilities of different orderings of examples, which can also be done through the API.
+                        - Neither method requires access to model weights. Both work with black-box API access.
+                    </textarea>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li><strong>Perplexity notebook</strong></li>
+                        <li style="color: #ccc;">Post-training recipe</li>
+                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
+                        <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
+                        <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
+                    </ul>
+                </section>
+            </section>
+
+            <!-- Post-training Recipe -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li style="color: #ccc;">Perplexity notebook</li>
+                        <li><strong>Post-training recipe</strong></li>
+                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
+                        <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
+                        <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
+                    </ul>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Goal of Post-training
+
+                        Pretraining produces a model that predicts the next token. It learns from all of the internet: textbooks, forums, code, nonsense, toxic content, ...
+
+                        The model can complete documents, but it does not know **what you want**.
+
+                        Post-training goals:
+                        - **Follow instructions**: do what the user asks
+                        - **Be helpful**: give useful, accurate responses
+                        - **Be safe**: refuse harmful requests, avoid generating toxic content
+                        - **Be honest**: say "I don't know" rather than hallucinate
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Base Model vs. Post-trained Model
+
+                        **Prompt**: "What is the capital of France?"
+
+                        **Base model** (document completion): might continue with "What is the capital of Germany? What is the capital of Italy? ..."
+
+                        **Post-trained model** (assistant): "The capital of France is Paris."
+
+                        The base model has the knowledge. Post-training teaches it to use that knowledge in the way users expect.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Instruction Finetuning (SFT)
+
+                        Collect a dataset of (instruction, desired response) pairs.
+
+                        Finetune the pretrained model using the standard language modeling objective:
+
+                        $$\mathcal{L}\_{\text{SFT}}(\theta) = -\mathbb{E}\_{(x, y) \sim D}\left[\sum\_{t=1}^{|y|} \log p\_\theta(y\_t | x, y\_{\lt t})\right]$$
+
+                        Only compute loss on the **response tokens** $y$, not the instruction $x$.
+
+                        This teaches the model the format and style of helpful responses.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Instruction Finetuning: Data
+
+                        Where do (instruction, response) pairs come from?
+
+                        - **Human-written**: contractors write both instructions and responses (expensive, high quality)
+                        - **Distillation**: use a stronger model (e.g., GPT-4) to generate responses (cheap, scalable)
+                        - **Self-instruct**: the model generates its own instruction-response pairs, filtered for quality
+
+                        
+                        <p class="citation">Ouyang et al. (2022); Taori et al. (2023); Wang et al. (2023)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why Is SFT Not Enough?
+
+                        SFT is **imitation learning**: the model learns to copy human-written responses token by token.
+
+                        **Problem 1: Token-level vs. response-level quality**
+
+                        The SFT loss treats every token equally. But response quality is a property of the whole response, not individual tokens. A single wrong token (e.g., "2 + 2 = 5") can ruin an otherwise good response.
+
+                        **Problem 2: No way to distinguish "good" from "great"**
+
+                        SFT maximizes the probability of the reference response. It cannot learn that one response style is preferred over another.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why Is SFT Not Enough? (cont.)
+
+                        **Problem 3: Exposure bias**
+
+                        During training, the model always sees gold tokens as context. During inference, it sees its own generated tokens. Errors compound.
+
+                        **Problem 4: Bounded by the demonstrations**
+
+                        SFT can only be as good as the training data. If the demonstrations are mediocre, the model will be mediocre. It cannot discover better strategies on its own.
+
+                        RL-style approaches address these issues by optimizing a **response-level reward** and letting the model **explore** its own outputs.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: SFT
+
+                        Which of the following is a limitation of supervised finetuning?
+
+                        - A) It requires generating samples from the model during training
+                        - B) It cannot leverage pretrained model weights
+                        - C) The loss function treats every token equally regardless of importance
+                        - D) It requires pairwise preference annotations
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **C) The loss function treats every token equally regardless of importance**
+
+                        SFT uses a token-level cross-entropy loss that weights all tokens the same. A critical token like "5" in "2+3 = 5" gets the same weight as "the". Options A and D describe RL-based methods (PPO, DPO), not SFT. Option B is wrong because SFT starts from a pretrained model.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Post-training Pipeline
+
+                        **Step 1**: Instruction Finetuning (SFT)
+                        - Teaches format and instruction following
+
+                        **Step 2**: Preference Optimization
+                        - Optimizes a response-level objective
+                        - Learns from the model's own outputs (online methods)
+                        - Multiple approaches: RLHF (PPO), DPO, GRPO, ...
+
+                        Most production LLMs follow this two-step recipe.
+
+                        <p class="citation">Ouyang et al. (2022); Touvron et al. (2023)</p>
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Rewards -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li style="color: #ccc;">Perplexity notebook</li>
+                        <li style="color: #ccc;">Post-training recipe</li>
+                        <li><strong>Preference optimization</strong></li>
+                        <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
+                        <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
+                        <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
+                    </ul>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## From Imitation to Preference Optimization
+
+                        **SFT** says: "here is a good response, make it more likely."
+
+                        **RL-style training** says: "generate a response, I will tell you how good it is, improve from there."
+
+                        The key difference: RL-style training requires a **reward signal** $R(x, y) \in \mathbb{R}$.
+
+                        This reward is computed on the **complete response**, not token by token. It captures response-level quality.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Reward Optimization Goal
+
+                        For an instruction $x$ and LM sample $y$:
+
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}[R(x, y)]$$
+
+                        Generate responses from the current policy, score them, and update the policy to produce higher-scoring responses.
+
+                        But where does $R(x, y)$ come from?
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Where Do Rewards Come From?
+
+                        **Option 1: Human feedback** (RLHF)
+                        - Ask humans to compare responses
+                        - Train a reward model to predict human preferences
+
+                        **Option 2: Verifiable rewards** (RLVR)
+                        - Use an automatic checker: math answer correct? code passes tests?
+                        - No learned model needed, no human in the loop
+
+                        **Option 3: AI feedback** (RLAIF)
+                        - Use a stronger LLM to judge response quality
+                        - Cheaper than humans, more scalable
+
+                        Each source has different trade-offs in cost, accuracy, and coverage.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RLHF: Learned Reward Models
+
+                        Asking humans to rate responses directly is noisy and expensive.
+
+                        **Better approach**: ask for **pairwise comparisons**.
+
+                        "Is response A better than response B?"
+
+                        This is more reliable than "Rate this response from 1-10."
+
+                        Train a **reward model** $RM\_\phi(x, y)$ on these comparisons.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RLVR: Verifiable Rewards
+
+                        For some tasks, we can check correctness automatically:
+
+                        | Task | Reward signal |
+                        |------|--------------|
+                        | Math | Is the final numerical answer correct? |
+                        | Code | Do the unit tests pass? |
+                        | Formal proofs | Does the proof checker accept? |
+                        | Constrained generation | Does the output satisfy the constraints? |
+
+                        Verifiable rewards are **exact**: no approximation error, no reward hacking.
+
+                        But they only work for tasks with checkable outputs. Open-ended tasks (writing, conversation) still need learned rewards.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why RLVR Matters
+
+                        RLVR removes the reward model entirely. The reward comes from the task itself.
+
+                        This is how DeepSeek-R1 was trained: the model solves math problems, and the reward is simply whether the answer is correct.
+
+                        No human preferences, no learned reward model, just a binary signal: right or wrong.
+
+                        The simplicity of the reward enabled the model to develop its own reasoning strategies (chain of thought, backtracking) through exploration.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI (2025)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Reward Hacking
+
+                        Learned reward models are imperfect. The policy can learn to exploit their weaknesses.
+
+                        Examples:
+                        - Generating longer responses (reward models often prefer length)
+                        - Repeating confident-sounding phrases
+                        - Producing outputs that "look good" but are factually wrong
+
+                        **Solution**: add a KL penalty to stay close to the reference model:
+
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
+
+                        Verifiable rewards do not suffer from reward hacking (the checker is exact).
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Reward Hacking
+
+                        A reward model trained on human preferences tends to give higher scores to longer responses. After RL training, the model produces very long, repetitive responses. What is the most likely cause?
+
+                        - A) The KL penalty $\beta$ is too large
+                        - B) The model is reward hacking by exploiting the length bias in the reward model
+                        - C) The SFT training data contained long responses
+                        - D) The model has too few parameters
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **B) The model is reward hacking by exploiting the length bias in the reward model**
+
+                        The policy found that producing longer outputs reliably increases the reward model's score, even if the extra content is low quality. This is a classic example of reward hacking. Increasing $\beta$ (the KL penalty) or improving the reward model can help mitigate this.
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- DPO Section -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li style="color: #ccc;">Perplexity notebook</li>
+                        <li style="color: #ccc;">Post-training recipe</li>
+                        <li style="color: #ccc;">Preference optimization</li>
+                        <li><strong>Direct Preference Optimization (DPO)</strong></li>
+                        <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
+                        <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
+                    </ul>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## The Preference Optimization Zoo
+
+                        There are many algorithms for preference optimization: **PPO** (Schulman et al., 2017), **DPO** (Rafailov et al., 2024), **IPO** (Azar et al., 2024), **KTO** (Ethayarajh et al., 2024), **GRPO** (Shao et al., 2024), **REINFORCE Leave-One-Out** (Ahmadian et al., 2024), SimPO, ORPO, and many more.
+
+                        We will focus on three: **DPO**, **PPO** (Proximal Policy Optimization), and **GRPO** (Group Relative Policy Optimization).
+
+                        We start with DPO because it is the simplest: no RL, no sampling, just a supervised loss. Then we build up to PPO and GRPO, which use RL.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why Is the RLHF Objective Hard to Optimize?
+
+                        <div style="font-size: 0.9em;">
+
+                        The preference optimization objective:
+
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta(y|x) \| p\_{\text{ref}}(y|x)\right)\right]$$
+
+                        This is hard because:
+
+                        1. **Expectation over model samples**: we need to generate responses from $p\_\theta$, which changes every update
+                        2. **Non-differentiable sampling**: cannot backpropagate through discrete token generation
+                        3. **Requires RL**: must use policy gradient methods (REINFORCE, PPO) to estimate gradients
+                        4. **Separate reward model**: must train and maintain $RM\_\phi$ alongside the policy
+
+                        Can we avoid all of this?
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: Closed-Form Optimal Policy
+
+                        <div style="font-size: 0.9em;">
+
+                        Start from the KL-regularized objective:
+
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM(x, y) - \beta \log \frac{p\_\theta(y|x)}{p\_{\text{ref}}(y|x)}\right]$$
+
+                        Write the KL term out and rearrange:
+
+                        $$= \mathbb{E}\_{y \sim p\_\theta}\left[RM(x, y) - \beta \log p\_\theta(y|x) + \beta \log p\_{\text{ref}}(y|x)\right]$$
+
+                        This is maximized when $p\_\theta$ places all mass where $RM(x,y) + \beta \log p\_{\text{ref}}(y|x)$ is highest, subject to $p\_\theta$ being a valid distribution. The solution is:
+
+                        $$p^*(y|x) = \frac{1}{Z(x)} \cdot p\_{\text{ref}}(y|x) \cdot \exp\left(\frac{1}{\beta} RM(x, y)\right)$$
+
+                        where $Z(x)$ normalizes the distribution.
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: Key Insight
+
+                        We have the optimal policy: $p^*(y|x) = \frac{1}{Z(x)} \cdot p\_{\text{ref}}(y|x) \cdot \exp\left(\frac{1}{\beta} RM(x, y)\right)$
+
+                        Take the log of both sides and solve for $RM$:
+
+                        $$\log p^*(y|x) = \log p\_{\text{ref}}(y|x) + \frac{1}{\beta} RM(x, y) - \log Z(x)$$
+
+                        $$RM(x, y) = \beta \log \frac{p^*(y|x)}{p\_{\text{ref}}(y|x)} + \beta \log Z(x)$$
+
+                        The reward is fully determined by the policy and the reference model. The policy **is** the reward model. No need for a separate one.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2305.18290">Rafailov et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Bradley-Terry Model for Preferences
+
+                        <div style="font-size: 0.9em;">
+
+                        How do we model pairwise preferences mathematically?
+
+                        Given a winning response $y\_w$ and a losing response $y\_l$, the probability that $y\_w$ is preferred:
+
+                        $$P(y\_w \succ y\_l | x) = \sigma(RM(x, y\_w) - RM(x, y\_l))$$
+
+                        where $\sigma$ is the sigmoid function. The reward model is trained to maximize:
+
+                        $$\mathcal{L}\_{RM}(\phi) = -\mathbb{E}\_{(x, y\_w, y\_l) \sim D}[\log \sigma(RM\_\phi(x, y\_w) - RM\_\phi(x, y\_l))]$$
+
+                        This is the standard loss for training reward models in RLHF. DPO will use this same preference model but eliminate $RM\_\phi$ entirely.
+
+                        <p class="citation">Bradley and Terry (1952)</p>
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: Deriving the Loss
+
+                        <div style="font-size: 0.85em;">
+
+                        Start from the Bradley-Terry preference model:
+
+                        $$P(y\_w \succ y\_l | x) = \sigma(RM(x, y\_w) - RM(x, y\_l))$$
+
+                        Now substitute $RM(x, y) = \beta \log \frac{p^*(y|x)}{p\_{\text{ref}}(y|x)} + \beta \log Z(x)$:
+
+                        $$P(y\_w \succ y\_l | x) = \sigma\left(\beta \log \frac{p^*(y\_w|x)}{p\_{\text{ref}}(y\_w|x)} - \beta \log \frac{p^*(y\_l|x)}{p\_{\text{ref}}(y\_l|x)}\right)$$
+
+                        The $\beta \log Z(x)$ terms cancel! Replace $p^*$ with our learnable policy $p\_\theta$ and maximize the log-likelihood over a dataset of preference pairs $(x, y\_w, y\_l)$:
+
+                        $\mathcal{L}\_{\text{DPO}}(\theta) = -\mathbb{E}\_{(x, y\_w, y\_l) \sim D}\left[\log \sigma\left(\beta \log \frac{p\_\theta(y\_w|x)}{p\_{\text{ref}}(y\_w|x)} - \beta \log \frac{p\_\theta(y\_l|x)}{p\_{\text{ref}}(y\_l|x)}\right)\right]$
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2305.18290">Rafailov et al. (2024)</a></p>
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: Reading the Loss
+
+                        <div style="font-size: 0.9em;">
+
+                        $\mathcal{L}\_{\text{DPO}} = -\log \sigma\Big(\underbrace{\beta \log \frac{p\_\theta(y\_w|x)}{p\_{\text{ref}}(y\_w|x)}}\_{\text{implicit reward of } y\_w} - \underbrace{\beta \log \frac{p\_\theta(y\_l|x)}{p\_{\text{ref}}(y\_l|x)}}\_{\text{implicit reward of } y\_l}\Big)$
+
+                        Each term $\beta \log \frac{p\_\theta(y|x)}{p\_{\text{ref}}(y|x)}$ measures how much the policy has moved toward $y$ relative to the reference. This is the **implicit reward**.
+
+                        The loss says: the implicit reward of the winning response $y\_w$ should be higher than that of the losing response $y\_l$. The sigmoid + log make this a logistic regression on the reward gap.
+
+                        Gradient pushes $p\_\theta(y\_w|x)$ up and $p\_\theta(y\_l|x)$ down, weighted by how "surprised" the current model is by the preference.
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Why DPO Is Easier
+
+                        The RLHF objective requires sampling from the model and using RL to estimate gradients:
+
+                        $$\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\right] \quad \leftarrow \text{need RL}$$
+
+                        DPO turns this into a supervised loss on a fixed dataset:
+
+                        $$\min\_\theta \; \mathcal{L}\_{\text{DPO}}(\theta) \quad \leftarrow \text{standard gradient descent}$$
+
+                        No sampling from the model. No reward model. No value function. No RL. Just compute log-probabilities on existing preference pairs and take gradient steps.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DPO: Algorithm
+
+                        **Input**: preference dataset $D = \\{(x, y\_w, y\_l)\\}$, reference model $p\_{\text{ref}}$
+
+                        1. Initialize $p\_\theta$ from the SFT model (which also serves as $p\_{\text{ref}}$)
+                        2. For each batch of preference pairs $(x, y\_w, y\_l)$:
+                            - Compute log-probs under $p\_\theta$ and $p\_{\text{ref}}$ for both $y\_w$ and $y\_l$
+                            - Compute the DPO loss
+                            - Update $\theta$ with gradient descent
+                        3. Return the trained policy $p\_\theta$
+
+                        That is it. Standard supervised training loop. No sampling from the model during training.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: DPO
+
+                        In DPO, the partition function $Z(x)$ cancels out when deriving the loss. Why is this important?
+
+                        - A) It makes the loss differentiable
+                        - B) It removes the need to compute an intractable normalization constant over all possible responses
+                        - C) It eliminates the KL penalty
+                        - D) It allows using larger batch sizes
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **B) It removes the need to compute an intractable normalization constant over all possible responses**
+
+                        $Z(x) = \sum\_y p\_{\text{ref}}(y|x) \exp(\frac{1}{\beta} RM(x,y))$ requires summing over all possible responses, which is intractable. By using pairwise preferences, $Z(x)$ appears in both the numerator and denominator and cancels. This makes DPO practical.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Limitations of DPO
+
+                        **Unintended probability shifts**:
+
+                        > "Training a model to prefer No over Never can sharply increase the probability of Yes."
+
+                        DPO decreases the probability of $y\_l$ but the freed probability mass can go anywhere, not just to $y\_w$.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2404.04626">Razin et al. (2025)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Limitations of DPO (cont.)
+
+                        **Offline / no exploration**: DPO optimizes over a fixed dataset. The model never generates new responses during training. It cannot discover better strategies beyond what the dataset contains.
+
+                        **Distribution mismatch**: As training progresses, $p\_\theta$ drifts from $p\_{\text{ref}}$. The preference pairs in $D$ were generated from $p\_{\text{ref}}$, so the training signal becomes stale.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Limitations of DPO: Model Collapse
+
+                        <div style="font-size: 0.9em;">
+
+                        The DPO loss can be minimized in two ways:
+
+                        1. **Increase** $p\_\theta(y\_w|x)$ (make the winning response more likely)
+                        2. **Decrease** $p\_\theta(y\_l|x)$ (make the losing response less likely)
+
+                        In practice, the model often takes the easier path: it decreases the probability of $y\_l$ without increasing the probability of $y\_w$. The model learns **what not to say** rather than **what to say**.
+
+                        Over training, this can lead to **model collapse**: the model's generations become degenerate because it has only learned to suppress bad outputs, not to produce good ones.
+
+                        Online methods (PPO, GRPO) avoid this because the model must actually generate good responses to receive high rewards.
+
+                        These issues motivated online methods like PPO and GRPO.
+
+                        </div>
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- PPO Section -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li style="color: #ccc;">Perplexity notebook</li>
+                        <li style="color: #ccc;">Post-training recipe</li>
+                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
+                        <li><strong>Proximal Policy Optimization (PPO)</strong></li>
+                        <li style="color: #ccc;">Group Relative Policy Optimization (GRPO)</li>
+                    </ul>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RL Basics: Policy Gradient
+
+                        In reinforcement learning, an **agent** takes **actions** in an environment and receives **rewards**.
+
+                        For language models:
+                        - **Agent**: the language model $p\_\theta$
+                        - **Action**: generating a response $y$ given prompt $x$
+                        - **Reward**: $R(x, y)$ (from a reward model or verifier)
+
+                        The goal is to maximize expected reward: $\max\_\theta \; \mathbb{E}\_{y \sim p\_\theta(y|x)}[R(x, y)]$
+
+                        **Policy gradient** (REINFORCE): $\nabla\_\theta J = \mathbb{E}\_{y \sim p\_\theta}[R(x,y) \nabla\_\theta \log p\_\theta(y|x)]$
+
+                        Sample responses, compute rewards, increase probability of high-reward responses.
+
+                        <p class="citation">Williams (1992)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## RL Basics: Variance Reduction
+
+                        Raw policy gradient has high variance. Two standard fixes:
+
+                        **1. Baseline subtraction**: subtract a baseline $b$ from the reward
+
+                        $\nabla\_\theta J = \mathbb{E}\_{y \sim p\_\theta}[(R(x,y) - b) \nabla\_\theta \log p\_\theta(y|x)]$
+
+                        This does not change the expected gradient but reduces variance. A common baseline is the **value function** $V(x)$: the expected reward from prompt $x$.
+
+                        **2. Clipping**: limit how much the policy can change in a single update (this is what PPO does).
+
+                        Different RL algorithms for LLMs differ mainly in how they handle the baseline and the update step.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Motivation
+
+                        Unlike DPO, PPO is **online**: the model generates new samples and learns from them.
+
+                        This is the classic RLHF approach used in InstructGPT and ChatGPT.
+
+                        **Setup**: We have a trained reward model $RM\_\phi$ and want to optimize the policy $p\_\theta$.
+
+                        <p class="citation">Schulman et al. (2017); Ouyang et al. (2022)</p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Objective Function
+
+                        <div style="font-size: 0.9em;">
+
+                        The RLHF objective with KL penalty:
+
+                        $$\max\_\theta \; \mathbb{E}\_{x \sim D, \, y \sim p\_\theta(y|x)}\left[RM\_\phi(x, y) - \beta \, \text{KL}\left(p\_\theta \| p\_{\text{ref}}\right)\right]$$
+
+                        PPO maximizes a **clipped surrogate objective** to take stable gradient steps:
+
+                        $$\mathcal{L}\_{\text{PPO}}(\theta) = \mathbb{E}\_t\left[\min\left(r\_t(\theta) \hat{A}\_t, \; \text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}\_t\right)\right]$$
+
+                        where $r\_t(\theta) = \frac{p\_\theta(y\_t | x, y\_{\lt t})}{p\_{\theta\_{\text{old}}}(y\_t | x, y\_{\lt t})}$ is the probability ratio and $\hat{A}\_t$ is the advantage estimate.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/1707.06347">Schulman et al. (2017)</a></p>
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: What is the Advantage?
+
+                        The **advantage** $\hat{A}\_t$ measures how much better an action is compared to the average:
+
+                        $$\hat{A}\_t = R\_t - V(s\_t)$$
+
+                        - $R\_t$: the reward (from $RM\_\phi$) received for the response
+                        - $V(s\_t)$: the **value function** (a learned baseline that predicts expected reward)
+
+                        Positive advantage: this action was better than expected. Increase its probability.
+
+                        Negative advantage: this action was worse than expected. Decrease its probability.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Reward Model vs. Value Function
+
+                        They serve different roles in PPO:
+
+                        **Reward Model** $RM\_\phi(x, y)$: scores a **complete** response. Trained on human preferences. Fixed during PPO training. Provides the learning signal.
+
+                        **Value Function** $V(s\_t)$: predicts the **expected reward** the current policy will achieve from state $s\_t$ (prompt + partial response so far). Trained alongside the policy. Serves as a baseline for variance reduction.
+
+                        The reward model answers: "how good is this response?"
+
+                        The value function answers: "how good do we expect the response to be, given what has been generated so far?"
+
+                        This is why PPO requires **4 models**: policy $p\_\theta$, reference $p\_{\text{ref}}$, reward model $RM\_\phi$, and value function $V$.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Why Clipping?
+
+                        Without clipping, a single update could change the policy drastically.
+
+                        The clip function limits the probability ratio:
+
+                        $$\text{clip}(r\_t(\theta), 1 - \epsilon, 1 + \epsilon)$$
+
+                        If $r\_t > 1 + \epsilon$: the token became too much more likely. Clip it.
+
+                        If $r\_t \lt 1 - \epsilon$: the token became too much less likely. Clip it.
+
+                        The $\min$ with the unclipped term ensures we only clip when it would make the objective **worse**. This produces conservative, stable updates.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Algorithm
+
+                        **Input**: reward model $RM\_\phi$, reference model $p\_{\text{ref}}$, prompts $D$
+
+                        Repeat:
+                        1. **Sample**: generate responses $y \sim p\_\theta(y|x)$ for a batch of prompts
+                        2. **Score**: compute rewards $RM\_\phi(x, y) - \beta \, \text{KL}(p\_\theta \| p\_{\text{ref}})$
+                        3. **Estimate advantages**: using the value function $V$
+                        4. **Update**: take gradient steps on the clipped surrogate objective
+                        5. **Update value function**: fit $V$ to the observed returns
+
+                        Requires 4 models in memory: policy, reference, reward model, value function.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## InstructGPT: PPO at Scale
+
+                        InstructGPT applied PPO to a 175B parameter model:
+
+                        - ~30K tasks with human-written demonstrations (SFT)
+                        - ~33K comparison pairs for the reward model
+                        - PPO optimization with the KL penalty
+
+                        The 1.3B InstructGPT model was preferred over the 175B base GPT-3.
+
+                        This work led directly to ChatGPT.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2203.02155">Ouyang et al. (2022)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## PPO: Challenges
+
+                        - **4 models in memory**: policy, reference, reward model, value function
+                        - **On-policy sampling**: must generate new responses each iteration (slow)
+                        - **Hyperparameter sensitivity**: clipping range $\epsilon$, KL coefficient $\beta$, learning rate
+                        - **Training instability**: reward hacking, value function collapse
+                        - **Engineering complexity**: requires careful distributed training setup
+
+                        These challenges motivated simpler alternatives like DPO and GRPO.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: PPO
+
+                        In PPO, what happens if we set the clipping range $\epsilon = \infty$ (i.e., no clipping)?
+
+                        - A) PPO becomes equivalent to DPO
+                        - B) The policy updates become unconstrained and can change drastically in a single step
+                        - C) The value function is no longer needed
+                        - D) The reward model becomes unnecessary
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **B) The policy updates become unconstrained and can change drastically in a single step**
+
+                        Without clipping, PPO reduces to standard policy gradient (REINFORCE with baseline). The clipping is what makes PPO "proximal": it keeps each update close to the previous policy. Large unconstrained updates often lead to training collapse.
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- GRPO Section -->
+            <section>
+                <section>
+                    <h2>Lecture Outline</h2>
+                    <ul>
+                        <li style="color: #ccc;">Lecture maintenance</li>
+                        <li style="color: #ccc;">Perplexity notebook</li>
+                        <li style="color: #ccc;">Post-training recipe</li>
+                        <li style="color: #ccc;">Preference optimization</li>
+                        <li style="color: #ccc;">Direct Preference Optimization (DPO)</li>
+                        <li style="color: #ccc;">Proximal Policy Optimization (PPO)</li>
+                        <li><strong>Group Relative Policy Optimization (GRPO)</strong></li>
+                    </ul>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## GRPO: Motivation
+
+                        PPO requires a learned value function (critic) to estimate advantages. This adds memory and complexity.
+
+                        **Key idea**: Instead of learning a value baseline, estimate it from a **group of samples**.
+
+                        Generate multiple responses to the same prompt, and use the group's mean reward as the baseline.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2402.03300">Shao et al. (2024)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## GRPO: Objective Function
+
+                        <div style="font-size: 0.85em;">
+
+                        For each prompt $x$, sample a group of $G$ responses $\\{y\_1, \ldots, y\_G\\} \sim p\_{\theta\_{\text{old}}}(y|x)$.
+
+                        $$\mathcal{L}\_{\text{GRPO}}(\theta) = \mathbb{E}\_{x \sim D} \left[\frac{1}{G} \sum\_{i=1}^{G} \min\left(r\_i(\theta) \hat{A}\_i, \; \text{clip}(r\_i(\theta), 1-\epsilon, 1+\epsilon) \hat{A}\_i\right) - \beta \, \text{KL}(p\_\theta \| p\_{\text{ref}})\right]$$
+
+                        where $r\_i(\theta) = \frac{p\_\theta(y\_i|x)}{p\_{\theta\_{\text{old}}}(y\_i|x)}$ and the advantage is:
+
+                        $$\hat{A}\_i = \frac{R\_i - \text{mean}(\\{R\_1, \ldots, R\_G\\})}{\text{std}(\\{R\_1, \ldots, R\_G\\})}$$
+
+                        The group statistics replace the learned value function.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2402.03300">Shao et al. (2024)</a></p>
+
+                        </div>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## GRPO: Algorithm
+
+                        **Input**: reward function $R$ (learned or verifiable), reference model $p\_{\text{ref}}$, prompts $D$
+
+                        Repeat:
+                        1. **Sample a group**: for each prompt $x$, generate $G$ responses $\\{y\_1, \ldots, y\_G\\}$ from $p\_{\theta\_{\text{old}}}$
+                        2. **Score**: compute rewards $R\_i = R(x, y\_i)$ for each response
+                        3. **Normalize**: compute group-normalized advantages $\hat{A}\_i$
+                        4. **Update**: take gradient steps on the clipped objective with KL penalty
+
+                        No value function needed. Only 2 models in memory: policy and reference.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## GRPO: Why Group Normalization Works
+
+                        Consider a math problem with $G = 8$ sampled solutions:
+
+                        | Response | Correct? | Reward | Normalized Advantage |
+                        |----------|----------|--------|---------------------|
+                        | $y\_1$ | Yes | 1 | +1.15 |
+                        | $y\_2$ | No | 0 | -0.58 |
+                        | $y\_3$ | Yes | 1 | +1.15 |
+                        | ... | ... | ... | ... |
+
+                        Correct solutions get positive advantage (reinforced). Wrong solutions get negative advantage (suppressed).
+
+                        The normalization ensures stable gradients regardless of the reward scale.
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## DeepSeek-R1: GRPO for Reasoning
+
+                        DeepSeek-R1 used GRPO with verifiable rewards (math correctness) to train reasoning models.
+
+                        The model learned to produce long chains of thought, including self-verification and backtracking, without any human demonstrations of reasoning.
+
+                        GRPO + verifiable rewards enabled "reasoning emergence" purely through RL.
+
+                        <p class="citation"><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI (2025)</a></p>
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: PPO vs GRPO
+
+                        What is the main difference between how PPO and GRPO estimate advantages?
+
+                        - A) PPO uses a learned value function; GRPO uses the mean reward of a group of samples
+                        - B) PPO uses verifiable rewards; GRPO uses learned rewards
+                        - C) PPO generates one sample per prompt; GRPO generates multiple
+                        - D) PPO clips the objective; GRPO does not
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Quiz: Answer
+
+                        **A) PPO uses a learned value function; GRPO uses the mean reward of a group of samples**
+
+                        Both generate multiple samples and both use clipping. The key difference is the baseline: PPO learns a separate value network, while GRPO computes the baseline from the group statistics of the current batch.
+
+                        This removes one model from memory and simplifies the training pipeline.
+                    </textarea>
+                </section>
+            </section>
+
+            <!-- Summary -->
+            <section>
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Summary
+
+                        | Method | Reward Source | Online? | Models in Memory | Complexity |
+                        |--------|-------------|---------|-----------------|------------|
+                        | SFT | None (imitation) | No | 1 | Low |
+                        | DPO | Implicit (preference pairs) | No (offline) | 2 | Low |
+                        | PPO | Learned RM | Yes | 4 | High |
+                        | GRPO | Learned RM or verifiable | Yes | 2 | Medium |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Summary: Reward Sources
+
+                        | Source | Examples | Pros | Cons |
+                        |--------|----------|------|------|
+                        | Human preferences (RLHF) | Helpfulness, safety | General-purpose | Expensive, noisy, reward hacking |
+                        | Verifiable (RLVR) | Math, code, proofs | Exact, no hacking | Limited to checkable tasks |
+                        | AI feedback (RLAIF) | LLM-as-judge | Cheap, scalable | Biases of the judge model |
+                        | Preference pairs (DPO) | Win/lose comparisons | No separate RM | Offline, distribution mismatch |
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Key Takeaways
+
+                        1. **Post-training** transforms a base LM into a useful assistant via SFT + preference optimization
+                        2. **SFT** teaches format but is bounded by demonstrations and optimizes at the token level
+                        3. **Rewards** can come from humans (RLHF), automatic checkers (RLVR), or AI judges (RLAIF)
+                        4. **DPO** skips the reward model by deriving a closed-form supervised loss from preference data
+                        5. **PPO** uses online RL with a clipped surrogate objective and a learned value function
+                        6. **GRPO** simplifies PPO by replacing the value function with group-level reward normalization
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Reading
+
+                        - Ouyang et al. (2022): [Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155)
+                        - Rafailov et al. (2024): [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)
+                        - Schulman et al. (2017): [Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)
+                        - Shao et al. (2024): [DeepSeekMath: Pushing the Limits of Mathematical Reasoning](https://arxiv.org/abs/2402.03300)
+                        - DeepSeek-AI (2025): [DeepSeek-R1](https://arxiv.org/abs/2501.12948)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        # Questions?
+                    </textarea>
+                </section>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/math/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            width: 1280,
+            height: 720,
+            margin: 0.04,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealMath.KaTeX ]
+        });
+    </script>
+</body>
+</html>
